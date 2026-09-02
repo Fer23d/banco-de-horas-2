@@ -9,6 +9,25 @@ import { compareIsoDates, eachIsoDate, isIsoDate, isWeekend } from '../../shared
 export const MAX_ENTRY_MINUTES = 24 * 60
 export const MAX_PROJECT_CODE_LENGTH = 80
 
+export const fieldWorkActivities = [
+  { id: 'field-travel', name: 'Viagem', active: true },
+  { id: 'field-services', name: 'Serviços em campo', active: true },
+  { id: 'field-office-support', name: 'Serviços em escritório (preparação/treinamento/relatórios)', active: true },
+  { id: 'field-non-deducted-day-off', name: 'Folga de campo não descontada', active: true },
+] as const
+
+export const corporateActivities = [
+  { id: 'corporate-vacation-or-no-service', name: 'Férias ou não prestação de serviço', active: true },
+  { id: 'corporate-day-off', name: 'Folga corporativa', active: true },
+  { id: 'corporate-deducted-day-off', name: 'Folga descontada', active: true },
+  { id: 'corporate-training-event', name: 'Treinamento / evento corporativo', active: true },
+] as const
+
+export const activityOptionsByWorkContext = {
+  field: fieldWorkActivities,
+  corporate: corporateActivities,
+} as const
+
 export function hoursAndMinutesToMinutes(hours: number, minutes: number) {
   return hours * 60 + minutes
 }
@@ -52,7 +71,7 @@ export function expandTimeEntryDates(startDate: string, endDate: string, weekday
 export function validateTimeEntry(
   data: CreateTimeEntryData,
   clients: Client[],
-  activities: Activity[],
+  _activities: Activity[],
   context?: { today: string; canMutateDate: boolean },
 ): TimeEntryValidationErrors {
   const errors: TimeEntryValidationErrors = {}
@@ -63,7 +82,13 @@ export function validateTimeEntry(
   const projectCode = data.projectCode.trim()
   if (!projectCode) errors.projectCode = 'Informe o número do projeto.'
   else if (projectCode.length > MAX_PROJECT_CODE_LENGTH) errors.projectCode = 'O número do projeto deve ter no máximo 80 caracteres.'
-  if (!activities.some((activity) => activity.id === data.activityId && activity.active)) errors.activityId = 'Selecione uma atividade ativa.'
+  const allowedContextActivities = data.emObra ? fieldWorkActivities : corporateActivities
+  if (!allowedContextActivities.some((activity) => activity.id === data.activityId && activity.active)) {
+    errors.activityId = data.emObra
+      ? 'Selecione uma atividade de obra.'
+      : 'Selecione uma atividade corporativa.'
+  }
+  if (data.emObra && !data.numeroObra?.trim()) errors.numeroObra = 'Informe o número da obra.'
   if (!['—', 'A', 'E'].includes(data.disciplineCode)) errors.disciplineCode = 'Selecione uma disciplina.'
   if (!['—', 'RN', 'GR', 'G', 'FD', 'DE', 'LM', 'DI', 'LC', 'LI', 'ET', 'MC', 'MO', 'MD', 'FG', 'LA', 'ES', 'CF'].includes(data.documentTypeCode)) {
     errors.documentTypeCode = 'Selecione um tipo de documento.'

@@ -7,7 +7,7 @@ import { TimeEntryFields } from './TimeEntryFields'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
 const values: TimeEntryFormValues = {
-  startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, clientId: '', projectCode: '', activityId: '', disciplineCode: '', documentTypeCode: '',
+  startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, emObra: false, numeroObra: '', clientId: '', projectCode: '', activityId: '', disciplineCode: '', documentTypeCode: '',
   hours: '', minutes: '', details: '', editReason: '',
 }
 
@@ -28,10 +28,12 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).toContain('for="document-type"')
   })
 
-  it('preserva o texto do número do projeto, a atividade Outros e remove campos descontinuados', () => {
+  it('preserva o texto do número do projeto e exibe atividades corporativas quando não está em obra', () => {
     const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" onChange={vi.fn()} />)
     expect(markup).toContain('* Escreva exatamente a numeração do projeto atual, caso já possua.')
-    expect(markup).toContain('Outros')
+    expect(markup).toContain('Estava em obra?')
+    expect(markup).toContain('Férias ou não prestação de serviço')
+    expect(markup).toContain('Treinamento / evento corporativo')
     expect(markup).toContain('Se a data final for diferente')
     expect(markup).not.toContain('Avanço')
     expect(markup).not.toContain('Documento (LD)')

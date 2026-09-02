@@ -13,6 +13,8 @@ export type TimeEntryFormValues = {
   startDate: string
   endDate: string
   weekdaysOnly: boolean
+  emObra: boolean
+  numeroObra: string
   clientId: string
   projectCode: string
   activityId: string
@@ -28,6 +30,8 @@ const emptyValues = (entryDate: string): TimeEntryFormValues => ({
   startDate: entryDate,
   endDate: entryDate,
   weekdaysOnly: true,
+  emObra: false,
+  numeroObra: '',
   clientId: '',
   projectCode: '',
   activityId: '',
@@ -44,6 +48,8 @@ function valuesFromEntry(entry: TimeEntry): TimeEntryFormValues {
     startDate: entry.entryDate,
     endDate: entry.entryDate,
     weekdaysOnly: true,
+    emObra: entry.emObra,
+    numeroObra: entry.numeroObra ?? '',
     clientId: entry.clientId,
     projectCode: entry.projectCode,
     activityId: entry.activityId,
@@ -111,6 +117,8 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       entryDate: values.startDate,
       endDate: effectiveEndDate,
       weekdaysOnly: effectiveWeekdaysOnly,
+      emObra: values.emObra,
+      numeroObra: values.emObra ? values.numeroObra : undefined,
       clientId: values.clientId,
       projectCode: values.projectCode,
       activityId: values.activityId,

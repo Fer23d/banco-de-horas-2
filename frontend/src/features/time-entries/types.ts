@@ -26,6 +26,8 @@ export interface TimeEntry {
   id: string
   collaboratorId: string
   entryDate: string
+  emObra: boolean
+  numeroObra?: string
   clientId: string
   projectCode: string
   activityId: string
@@ -55,6 +57,8 @@ export type CreateTimeEntryData = Pick<
   | 'durationMinutes'
   | 'details'
 > & {
+  emObra?: boolean
+  numeroObra?: string
   endDate?: string
   weekdaysOnly?: boolean
 }

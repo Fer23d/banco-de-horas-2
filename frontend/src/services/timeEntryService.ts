@@ -100,6 +100,8 @@ const documentTypeCodes: readonly DocumentTypeCode[] = [
 
 function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   const { endDate: _endDate, weekdaysOnly: _weekdaysOnly, ...baseData } = data
+  const emObra = data.emObra ?? false
+  const numeroObra = data.numeroObra?.trim()
   const projectCode = data.projectCode.trim()
   const details = data.details.trim()
   if (!isIsoDate(data.entryDate)) throw new Error('Informe uma data válida.')
@@ -108,13 +110,14 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   if (!data.clientId) throw new Error('Informe o cliente.')
   if (!projectCode || projectCode.length > MAX_PROJECT_CODE_LENGTH) throw new Error('Informe um código de projeto válido.')
   if (!data.activityId) throw new Error('Informe a atividade.')
+  if (emObra && !numeroObra) throw new Error('Informe o número da obra.')
   if (!disciplineCodes.includes(data.disciplineCode)) throw new Error('Informe a disciplina.')
   if (!documentTypeCodes.includes(data.documentTypeCode)) throw new Error('Informe o tipo de documento.')
   if (!Number.isInteger(data.durationMinutes) || data.durationMinutes <= 0 || data.durationMinutes > MAX_ENTRY_MINUTES) {
     throw new Error('Informe uma duração válida.')
   }
   if (!details) throw new Error('Informe o detalhamento.')
-  return { ...baseData, projectCode, details }
+  return { ...baseData, emObra, numeroObra: emObra ? numeroObra : undefined, projectCode, details }
 }
 
 function emptyStorage(): TimeEntryStorageV3 {
@@ -321,8 +324,16 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
     const createdEntries: TimeEntry[] = dates.map((date) => ({
       id: this.createId(),
       collaboratorId,
-      ...normalized,
       entryDate: date,
+      emObra: normalized.emObra ?? false,
+      numeroObra: normalized.numeroObra,
+      clientId: normalized.clientId,
+      projectCode: normalized.projectCode,
+      activityId: normalized.activityId,
+      disciplineCode: normalized.disciplineCode,
+      documentTypeCode: normalized.documentTypeCode,
+      durationMinutes: normalized.durationMinutes,
+      details: normalized.details,
       assignmentSnapshot,
       status: 'ACTIVE',
       version: 1,
@@ -369,6 +380,8 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
     this.assertVersion(entry, expectedVersion)
     const normalized = normalizeCreateData({
       entryDate: overrides.entryDate ?? entry.entryDate,
+      emObra: overrides.emObra ?? entry.emObra,
+      numeroObra: overrides.numeroObra ?? entry.numeroObra,
       clientId: overrides.clientId ?? entry.clientId,
       projectCode: overrides.projectCode ?? entry.projectCode,
       activityId: overrides.activityId ?? entry.activityId,
@@ -386,7 +399,16 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
     const duplicate: TimeEntry = {
       id: this.createId(),
       collaboratorId: collaborId,
-      ...normalized,
+      entryDate: normalized.entryDate,
+      emObra: normalized.emObra ?? false,
+      numeroObra: normalized.numeroObra,
+      clientId: normalized.clientId,
+      projectCode: normalized.projectCode,
+      activityId: normalized.activityId,
+      disciplineCode: normalized.disciplineCode,
+      documentTypeCode: normalized.documentTypeCode,
+      durationMinutes: normalized.durationMinutes,
+      details: normalized.details,
       assignmentSnapshot,
       status: 'ACTIVE',
       version: 1,

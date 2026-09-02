@@ -21,10 +21,12 @@ const safeLegacyAssignmentByCollaboratorId: Readonly<Record<string, AssignmentSn
   },
 }
 
-type V2TimeEntry = Omit<TimeEntry, 'disciplineCode' | 'documentTypeCode' | 'assignmentSnapshot'> & {
+type V2TimeEntry = Omit<TimeEntry, 'disciplineCode' | 'documentTypeCode' | 'assignmentSnapshot' | 'emObra' | 'numeroObra'> & {
   disciplineCode?: unknown
   documentTypeCode?: unknown
   assignmentSnapshot?: unknown
+  emObra?: unknown
+  numeroObra?: unknown
 }
 
 type V1TimeEntry = Omit<V2TimeEntry, 'projectCode'> & { projectId: string }
@@ -97,6 +99,8 @@ function migrateV2Entry(entry: V2TimeEntry, collaboratorId: string): TimeEntry |
     id: entry.id,
     collaboratorId: entry.collaboratorId,
     entryDate: entry.entryDate,
+    emObra: typeof entry.emObra === 'boolean' ? entry.emObra : false,
+    numeroObra: optionalString(entry.numeroObra),
     clientId: entry.clientId,
     projectCode: entry.projectCode.trim(),
     activityId: entry.activityId,
@@ -126,6 +130,8 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
   if (typeof entry.id !== 'string'
     || entry.collaboratorId !== collaboratorId
     || !isIsoDate(String(entry.entryDate))
+    || (typeof entry.emObra !== 'undefined' && typeof entry.emObra !== 'boolean')
+    || (typeof entry.numeroObra !== 'undefined' && typeof entry.numeroObra !== 'string')
     || typeof entry.clientId !== 'string'
     || typeof entry.projectCode !== 'string'
     || !entry.projectCode
@@ -149,6 +155,8 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
     id: entry.id,
     collaboratorId,
     entryDate: String(entry.entryDate),
+    emObra: typeof entry.emObra === 'boolean' ? entry.emObra : false,
+    numeroObra: optionalString(entry.numeroObra),
     clientId: entry.clientId,
     projectCode: entry.projectCode,
     activityId: entry.activityId,

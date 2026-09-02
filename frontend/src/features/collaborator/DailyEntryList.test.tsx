@@ -7,6 +7,7 @@ const historicalEntry: TimeEntry = {
   id: 'historical-entry-1',
   collaboratorId: 'demo-collaborator-001',
   entryDate: '2026-07-20',
+  emObra: false,
   clientId: 'client-industrial-alpha',
   projectCode: 'SMA-001',
   activityId: 'activity-project-design',

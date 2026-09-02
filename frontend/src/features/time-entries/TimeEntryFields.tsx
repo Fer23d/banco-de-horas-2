@@ -1,4 +1,5 @@
-import { demoActivities, demoClients } from '../../mocks/demoData'
+import { demoClients } from '../../mocks/demoData'
+import { activityOptionsByWorkContext } from './domain'
 import type { TimeEntryValidationErrors } from './types'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
@@ -27,6 +28,14 @@ const documentTypes = [
 ] as const
 
 export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, onChange }: TimeEntryFieldsProps) {
+  const activityOptions = values.emObra ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
+
+  function handleWorkContextChange(emObra: boolean) {
+    onChange('emObra', emObra)
+    onChange('activityId', '')
+    if (!emObra) onChange('numeroObra', '')
+  }
+
   return (
     <div className="grid gap-5 md:grid-cols-2">
       <div className="md:col-span-2">
@@ -50,6 +59,28 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         </label>
       </div>
 
+      <fieldset className="md:col-span-2 rounded-2xl border ui-border ui-surface-subtle p-4">
+        <legend className="px-1 text-sm font-bold ui-text">Estava em obra?</legend>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${values.emObra ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
+            <input type="radio" name="emObra" checked={values.emObra} onChange={() => handleWorkContextChange(true)} className="h-4 w-4 accent-[var(--color-primary)]" />
+            Sim, estava em obra
+          </label>
+          <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${!values.emObra ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
+            <input type="radio" name="emObra" checked={!values.emObra} onChange={() => handleWorkContextChange(false)} className="h-4 w-4 accent-[var(--color-primary)]" />
+            Não, atividade corporativa
+          </label>
+        </div>
+      </fieldset>
+
+      {values.emObra && (
+        <div className="md:col-span-2">
+          <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra</label>
+          <input id="work-site-number" name="numeroObra" type="text" value={values.numeroObra} onChange={(event) => onChange('numeroObra', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.numeroObra)} aria-describedby={errors.numeroObra ? 'work-site-number-error' : undefined} />
+          <FieldError id="work-site-number-error" message={errors.numeroObra} />
+        </div>
+      )}
+
       <div>
         <label htmlFor="client" className="text-sm font-bold ui-text">Cliente</label>
         <select id="client" name="clientId" value={values.clientId} onChange={(event) => onChange('clientId', event.target.value)} className={fieldClassName} aria-invalid={Boolean(errors.clientId)} aria-describedby={errors.clientId ? 'client-error' : undefined}>
@@ -70,7 +101,7 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         <label htmlFor="activity" className="text-sm font-bold ui-text">Atividade realizada</label>
         <select id="activity" name="activityId" value={values.activityId} onChange={(event) => onChange('activityId', event.target.value)} className={fieldClassName} aria-invalid={Boolean(errors.activityId)} aria-describedby={errors.activityId ? 'activity-error' : undefined}>
           <option value="">Selecione uma atividade</option>
-          {demoActivities.filter((activity) => activity.active).map((activity) => <option key={activity.id} value={activity.id}>{activity.name}</option>)}
+          {activityOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.name}</option>)}
         </select>
         <FieldError id="activity-error" message={errors.activityId} />
       </div>

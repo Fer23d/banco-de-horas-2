@@ -22,6 +22,7 @@ function entry(date: string, durationMinutes: number, overrides: Partial<TimeEnt
     id: `entry-${date}-${durationMinutes}`,
     collaboratorId,
     entryDate: date,
+    emObra: false,
     clientId: 'client-1',
     projectCode: 'SMA-001',
     activityId: 'activity-1',
