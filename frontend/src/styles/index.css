@@ -1,0 +1,587 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-primary-950: #092E42;
+  --color-brand-primary-800: #0F455F;
+  --color-brand-primary-600: #1D617B;
+  --color-brand-primary-100: #E6F2F4;
+  --color-brand-primary-50: #F7FBFC;
+  --color-brand-secondary-700: #3A6F5B;
+  --color-brand-secondary-500: #75AC96;
+  --color-brand-secondary-100: #E9F2EC;
+}
+
+:root {
+  --color-background: #F7F7F7;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #FFFFFF;
+  --color-surface-subtle: #F1F5F7;
+  --color-header: #FFFFFF;
+  --color-sidebar: #092E42;
+  --color-text: #17212B;
+  --color-text-muted: #4B5B67;
+  --color-text-subtle: #5F6F7B;
+  --color-border: #758798;
+  --color-border-strong: #526879;
+  --color-focus-ring: #1D617B;
+  --color-shadow: rgb(9 46 66 / 0.14);
+  --color-primary: #0F455F;
+  --color-primary-hover: #1D617B;
+  --color-primary-active: #092E42;
+  --color-primary-contrast: #FFFFFF;
+  --color-secondary: #3A6F5B;
+  --color-secondary-hover: #2F5B4A;
+  --color-input-background: #FFFFFF;
+  --color-input-border: #758798;
+  --color-input-placeholder: #5F6F7B;
+  --color-navigation-active: #75AC96;
+  --color-navigation-active-detail: #E6F2F4;
+  --color-navigation-hover: #0F455F;
+  --color-overlay: rgb(9 46 66 / 0.64);
+  --color-sidebar-text: #F2F7FA;
+  --color-sidebar-text-muted: #B9C7D1;
+  --color-sidebar-border: #607787;
+  --color-sidebar-surface: #0F455F;
+  --color-navigation-active-text: #092E42;
+  --color-danger: #B42318;
+  --color-danger-hover: #8F1D14;
+  --color-danger-contrast: #FFFFFF;
+  --status-neutral-surface: #F1F5F7;
+  --status-neutral-text: #3F4F5B;
+  --status-neutral-border: #758798;
+  --status-info-surface: #EDF8FC;
+  --status-info-text: #225E7A;
+  --status-info-border: #2C7DA0;
+  --status-pending-surface: #FFF7E6;
+  --status-pending-text: #6B4F13;
+  --status-pending-border: #A16207;
+  --status-warning-surface: #FFF1E8;
+  --status-warning-text: #8A3F17;
+  --status-warning-border: #C2410C;
+  --status-success-surface: #EEF7EF;
+  --status-success-text: #275B39;
+  --status-success-border: #4D7C0F;
+  --status-danger-surface: #FFF0F0;
+  --status-danger-text: #7C2D32;
+  --status-danger-border: #B23A48;
+  --status-cancelled-surface: #F3F1F4;
+  --status-cancelled-text: #55485E;
+  --status-cancelled-border: #7C6F85;
+  --calendar-selected-ring: var(--color-focus-ring);
+  --calendar-state-no-schedule-surface: #F1F5F9;
+  --calendar-state-no-schedule-text: #334155;
+  --calendar-state-no-schedule-border: #64748B;
+  --calendar-state-no-entry-surface: #FFF7E6;
+  --calendar-state-no-entry-text: #6B4F13;
+  --calendar-state-no-entry-border: #A16207;
+  --calendar-state-incomplete-surface: #FFF1E8;
+  --calendar-state-incomplete-text: #8A3F17;
+  --calendar-state-incomplete-border: #C2410C;
+  --calendar-state-complete-surface: #EEF7EF;
+  --calendar-state-complete-text: #275B39;
+  --calendar-state-complete-border: #4D7C0F;
+  --calendar-state-exceeded-surface: #FDF0F4;
+  --calendar-state-exceeded-text: #7A2E45;
+  --calendar-state-exceeded-border: #A23E5A;
+  --calendar-state-vacation-surface: #F5F0FB;
+  --calendar-state-vacation-text: #5B3C88;
+  --calendar-state-vacation-border: #7E5BA6;
+  --calendar-state-time-off-surface: #EDF8FC;
+  --calendar-state-time-off-text: #225E7A;
+  --calendar-state-time-off-border: #2C7DA0;
+  --calendar-state-medical-leave-surface: #FAF0F8;
+  --calendar-state-medical-leave-text: #633A61;
+  --calendar-state-medical-leave-border: #8A5A83;
+  --calendar-state-holiday-surface: #FFF0F0;
+  --calendar-state-holiday-text: #7C2D32;
+  --calendar-state-holiday-border: #B23A48;
+}
+
+.dark {
+  --color-background: #0A161E;
+  --color-surface: #132532;
+  --color-surface-raised: #132532;
+  --color-surface-subtle: #193142;
+  --color-header: #132532;
+  --color-sidebar: #0A161E;
+  --color-text: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --color-text-subtle: #CBD5E1;
+  --color-border: #1F3B4D;
+  --color-border-strong: #77C2A4;
+  --color-focus-ring: #77C2A4;
+  --color-shadow: rgb(0 0 0 / 0.42);
+  --color-primary: #77C2A4;
+  --color-primary-hover: #9BD7BE;
+  --color-primary-active: #5EA98C;
+  --color-primary-contrast: #0A161E;
+  --color-secondary: #135063;
+  --color-secondary-hover: #1C6C82;
+  --color-input-background: #0F202B;
+  --color-input-border: #1F3B4D;
+  --color-input-placeholder: #94A3B8;
+  --color-navigation-active: rgb(119 194 164 / 0.10);
+  --color-navigation-active-detail: #132532;
+  --color-navigation-hover: #132532;
+  --color-overlay: rgb(0 0 0 / 0.68);
+  --color-sidebar-text: #F8FAFC;
+  --color-sidebar-text-muted: #94A3B8;
+  --color-sidebar-border: #1F3B4D;
+  --color-sidebar-surface: #132532;
+  --color-navigation-active-text: #77C2A4;
+  --color-danger: #FCA5A5;
+  --color-danger-hover: #FECACA;
+  --color-danger-contrast: #0A161E;
+  --status-neutral-surface: #263545;
+  --status-neutral-text: #E8EEF5;
+  --status-neutral-border: #91A4B8;
+  --status-info-surface: #203A48;
+  --status-info-text: #D9F2FF;
+  --status-info-border: #6FB7D1;
+  --status-pending-surface: #44371E;
+  --status-pending-text: #FFE9B0;
+  --status-pending-border: #D5A23A;
+  --status-warning-surface: #4A2A1B;
+  --status-warning-text: #FFD9C4;
+  --status-warning-border: #D27A44;
+  --status-success-surface: #253C2A;
+  --status-success-text: #DDEFD8;
+  --status-success-border: #80A76B;
+  --status-danger-surface: #49282A;
+  --status-danger-text: #FFE0E0;
+  --status-danger-border: #D68787;
+  --status-cancelled-surface: #302B36;
+  --status-cancelled-text: #EEE8F2;
+  --status-cancelled-border: #9F91AA;
+  --calendar-selected-ring: var(--color-focus-ring);
+  --calendar-state-no-schedule-surface: #263545;
+  --calendar-state-no-schedule-text: #E8EEF5;
+  --calendar-state-no-schedule-border: #91A4B8;
+  --calendar-state-no-entry-surface: #44371E;
+  --calendar-state-no-entry-text: #FFE9B0;
+  --calendar-state-no-entry-border: #D5A23A;
+  --calendar-state-incomplete-surface: #4A2A1B;
+  --calendar-state-incomplete-text: #FFD9C4;
+  --calendar-state-incomplete-border: #D27A44;
+  --calendar-state-complete-surface: #253C2A;
+  --calendar-state-complete-text: #DDEFD8;
+  --calendar-state-complete-border: #80A76B;
+  --calendar-state-exceeded-surface: #452532;
+  --calendar-state-exceeded-text: #FFD9E4;
+  --calendar-state-exceeded-border: #D0809A;
+  --calendar-state-vacation-surface: #352944;
+  --calendar-state-vacation-text: #E9DDFF;
+  --calendar-state-vacation-border: #A98AD0;
+  --calendar-state-time-off-surface: #203A48;
+  --calendar-state-time-off-text: #D9F2FF;
+  --calendar-state-time-off-border: #6FB7D1;
+  --calendar-state-medical-leave-surface: #42283F;
+  --calendar-state-medical-leave-text: #F5DDF0;
+  --calendar-state-medical-leave-border: #C28AB8;
+  --calendar-state-holiday-surface: #49282A;
+  --calendar-state-holiday-text: #FFE0E0;
+  --calendar-state-holiday-border: #D68787;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-text);
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .ui-card {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    box-shadow: 0 12px 32px var(--color-shadow);
+  }
+
+  .ui-field {
+    border: 1px solid var(--color-input-border);
+    background: var(--color-input-background);
+    color: var(--color-text);
+  }
+
+  .ui-field::placeholder {
+    color: var(--color-input-placeholder);
+  }
+
+  .ui-field:focus {
+    border-color: var(--color-focus-ring);
+    --tw-ring-color: var(--color-focus-ring);
+  }
+
+  .ui-heading {
+    color: var(--color-primary);
+  }
+
+  .ui-text {
+    color: var(--color-text);
+  }
+
+  .ui-text-muted {
+    color: var(--color-text-muted);
+  }
+
+  .ui-text-subtle {
+    color: var(--color-text-subtle);
+  }
+
+  .ui-accent {
+    color: var(--color-secondary);
+  }
+
+  .ui-surface {
+    background: var(--color-surface-raised);
+  }
+
+  .ui-surface-subtle {
+    background: var(--color-surface-subtle);
+  }
+
+  .ui-border {
+    border-color: var(--color-border);
+  }
+
+  .ui-border-primary {
+    border-color: var(--color-primary);
+  }
+
+  .ui-divide > :not(:last-child) {
+    border-color: var(--color-border);
+  }
+
+  .ui-callout-secondary {
+    border-color: var(--color-secondary);
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+  }
+
+  .ui-button-primary,
+  .ui-button-secondary,
+  .ui-button-danger {
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: 150ms;
+  }
+
+  .ui-button-primary {
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-primary-contrast);
+  }
+
+  .ui-button-primary:hover {
+    border-color: var(--color-primary-hover);
+    background: var(--color-primary-hover);
+  }
+
+  .ui-button-primary:active {
+    border-color: var(--color-primary-active);
+    background: var(--color-primary-active);
+  }
+
+  .ui-button-secondary {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-raised);
+    color: var(--color-primary);
+  }
+
+  .ui-button-secondary:hover {
+    border-color: var(--color-secondary);
+    background: var(--color-surface-subtle);
+    color: var(--color-secondary-hover);
+  }
+
+  .ui-button-danger {
+    border: 1px solid var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-danger-contrast);
+  }
+
+  .ui-button-danger:hover {
+    border-color: var(--color-danger-hover);
+    background: var(--color-danger-hover);
+  }
+
+  .ui-button-primary:disabled,
+  .ui-button-secondary:disabled,
+  .ui-button-danger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .ui-badge-primary,
+  .ui-badge-secondary {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .ui-badge-primary {
+    background: var(--color-navigation-active);
+    color: var(--color-navigation-active-text);
+  }
+
+  .ui-badge-secondary {
+    background: var(--color-surface-subtle);
+    color: var(--color-secondary);
+  }
+
+  .status-badge {
+    border-color: var(--status-badge-border);
+    background: var(--status-badge-surface);
+    color: var(--status-badge-text);
+  }
+
+  .dark .status-badge {
+    background: transparent;
+  }
+
+  .status-badge--neutral {
+    --status-badge-surface: var(--status-neutral-surface);
+    --status-badge-text: var(--status-neutral-text);
+    --status-badge-border: var(--status-neutral-border);
+  }
+
+  .status-badge--info {
+    --status-badge-surface: var(--status-info-surface);
+    --status-badge-text: var(--status-info-text);
+    --status-badge-border: var(--status-info-border);
+  }
+
+  .status-badge--pending {
+    --status-badge-surface: var(--status-pending-surface);
+    --status-badge-text: var(--status-pending-text);
+    --status-badge-border: var(--status-pending-border);
+  }
+
+  .status-badge--warning {
+    --status-badge-surface: var(--status-warning-surface);
+    --status-badge-text: var(--status-warning-text);
+    --status-badge-border: var(--status-warning-border);
+  }
+
+  .status-badge--success {
+    --status-badge-surface: var(--status-success-surface);
+    --status-badge-text: var(--status-success-text);
+    --status-badge-border: var(--status-success-border);
+  }
+
+  .status-badge--danger {
+    --status-badge-surface: var(--status-danger-surface);
+    --status-badge-text: var(--status-danger-text);
+    --status-badge-border: var(--status-danger-border);
+  }
+
+  .status-badge--cancelled {
+    --status-badge-surface: var(--status-cancelled-surface);
+    --status-badge-text: var(--status-cancelled-text);
+    --status-badge-border: var(--status-cancelled-border);
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.875rem;
+    background: transparent;
+    color: #0F455F;
+  }
+
+  .brand-mark--compact {
+    width: 6.625rem;
+    height: 2.5rem;
+  }
+
+  .brand-mark--full {
+    width: min(15rem, 100%);
+    aspect-ratio: 243 / 92;
+  }
+
+  .brand-mark__image-frame {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #FFFFFF;
+    padding: 0.5rem;
+  }
+
+  .brand-mark--compact .brand-mark__image-frame {
+    padding: 0.25rem;
+  }
+
+  .brand-mark__fallback {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .profile-card {
+    transition-property: transform, border-color, box-shadow;
+    transition-duration: 300ms;
+  }
+
+  .profile-card:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+    box-shadow: 0 18px 48px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+
+  .calendar-state {
+    border-color: var(--calendar-state-border);
+    background: var(--calendar-state-surface);
+    color: var(--calendar-state-text);
+  }
+
+  .dark .calendar-state {
+    border-color: var(--color-border);
+    border-left-color: var(--calendar-state-accent);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+  }
+
+  .calendar-state-dot {
+    display: inline-block;
+    height: 0.5rem;
+    width: 0.5rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--calendar-state-border);
+  }
+
+  .dark .calendar-state-badge {
+    border-color: color-mix(in srgb, var(--calendar-state-accent) 60%, transparent);
+    background: rgb(255 255 255 / 0.05);
+    color: var(--color-text);
+  }
+
+  .dark .calendar-state-dot {
+    background: var(--calendar-state-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--calendar-state-accent) 18%, transparent);
+  }
+
+  .dark .calendar-state-marker {
+    color: color-mix(in srgb, var(--calendar-state-accent) 78%, var(--color-text));
+  }
+
+  .dark [data-calendar-marker] {
+    display: inline-block;
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 9999px;
+    background: var(--calendar-state-accent);
+    color: transparent;
+    vertical-align: middle;
+  }
+
+  .calendar-state--no-schedule {
+    --calendar-state-surface: var(--calendar-state-no-schedule-surface);
+    --calendar-state-text: var(--calendar-state-no-schedule-text);
+    --calendar-state-border: var(--calendar-state-no-schedule-border);
+    --calendar-state-accent: #8FA3B5;
+  }
+
+  .calendar-state--no-entry {
+    --calendar-state-surface: var(--calendar-state-no-entry-surface);
+    --calendar-state-text: var(--calendar-state-no-entry-text);
+    --calendar-state-border: var(--calendar-state-no-entry-border);
+    --calendar-state-accent: #C9A66B;
+  }
+
+  .calendar-state--incomplete {
+    --calendar-state-surface: var(--calendar-state-incomplete-surface);
+    --calendar-state-text: var(--calendar-state-incomplete-text);
+    --calendar-state-border: var(--calendar-state-incomplete-border);
+    --calendar-state-accent: #C58F6B;
+  }
+
+  .calendar-state--complete {
+    --calendar-state-surface: var(--calendar-state-complete-surface);
+    --calendar-state-text: var(--calendar-state-complete-text);
+    --calendar-state-border: var(--calendar-state-complete-border);
+    --calendar-state-accent: #77C2A4;
+  }
+
+  .calendar-state--exceeded {
+    --calendar-state-surface: var(--calendar-state-exceeded-surface);
+    --calendar-state-text: var(--calendar-state-exceeded-text);
+    --calendar-state-border: var(--calendar-state-exceeded-border);
+    --calendar-state-accent: #C98AA0;
+  }
+
+  .calendar-state--vacation {
+    --calendar-state-surface: var(--calendar-state-vacation-surface);
+    --calendar-state-text: var(--calendar-state-vacation-text);
+    --calendar-state-border: var(--calendar-state-vacation-border);
+    --calendar-state-accent: #A89BC8;
+  }
+
+  .calendar-state--time-off {
+    --calendar-state-surface: var(--calendar-state-time-off-surface);
+    --calendar-state-text: var(--calendar-state-time-off-text);
+    --calendar-state-border: var(--calendar-state-time-off-border);
+    --calendar-state-accent: #8AB7C7;
+  }
+
+  .calendar-state--medical-leave {
+    --calendar-state-surface: var(--calendar-state-medical-leave-surface);
+    --calendar-state-text: var(--calendar-state-medical-leave-text);
+    --calendar-state-border: var(--calendar-state-medical-leave-border);
+    --calendar-state-accent: #B99AB4;
+  }
+
+  .calendar-state--holiday {
+    --calendar-state-surface: var(--calendar-state-holiday-surface);
+    --calendar-state-text: var(--calendar-state-holiday-text);
+    --calendar-state-border: var(--calendar-state-holiday-border);
+    --calendar-state-accent: #C99393;
+  }
+
+  .calendar-day--selected:not(:focus-visible) {
+    outline: 3px solid var(--calendar-selected-ring);
+    outline-offset: 2px;
+  }
+}
