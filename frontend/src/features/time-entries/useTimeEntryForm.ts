@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { demoActivities, demoClients } from '../../mocks/demoData'
-import { dayApprovalService } from '../../services/dayApprovalService'
 import { entryDateAvailabilityService } from '../../services/entryDateAvailabilityService'
 import { timeEntryService } from '../../services/timeEntryService'
 import type { CreateTimeEntryData, TimeEntry, TimeEntryValidationErrors } from './types'
@@ -123,20 +122,16 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       durationMinutes: hoursAndMinutesToMinutes(durationHours, durationRemainderMinutes),
       details: values.details,
     }
-    let canMutateDate = true
     let dateBlock = { blocked: false } as Awaited<ReturnType<typeof entryDateAvailabilityService.getBlock>>
     if (isIsoDate(data.entryDate)) {
       try {
-        [canMutateDate, dateBlock] = await Promise.all([
-          dayApprovalService.canMutate(profile.id, data.entryDate),
-          entryDateAvailabilityService.getBlock(profile.id, data.entryDate),
-        ])
+        dateBlock = await entryDateAvailabilityService.getBlock(profile.id, data.entryDate)
       } catch {
         setSubmitError('Não foi possível verificar os eventos desta data. Tente novamente.')
         return false
       }
     }
-    const validationErrors = validateTimeEntry(data, demoClients, demoActivities, { today: getCorporateToday(), canMutateDate })
+    const validationErrors = validateTimeEntry(data, demoClients, demoActivities, { today: getCorporateToday() })
     if (dateBlock.blocked) validationErrors.entryDate = dateBlock.message
     if (!areValidDurationParts(durationHours, durationRemainderMinutes)) {
       validationErrors.durationMinutes = 'Informe horas inteiras entre 0 e 24 e minutos inteiros entre 0 e 59, com total máximo de 24 horas.'

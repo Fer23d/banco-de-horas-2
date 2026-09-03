@@ -9,7 +9,6 @@ import type { WorkloadVersion } from '../features/workloads/types'
 import { isIsoDate } from '../shared/utils/date'
 import { createBrowserStorage, type StorageLike } from './storage'
 import { auditService } from './auditService'
-import { dayApprovalService } from './dayApprovalService'
 import { profileService } from './profileService'
 import type { EntryDateBlock } from '../features/calendar/entryDatePolicy'
 import { entryDateAvailabilityService } from './entryDateAvailabilityService'
@@ -51,10 +50,6 @@ export type TimeEntryPage = {
   total: number
 }
 
-export interface EntryMutationPolicy {
-  canMutate(collaboratorId: string, date: string): Promise<boolean>
-}
-
 export interface EntryDateGuard {
   getBlock(collaboratorId: string, date: string): Promise<EntryDateBlock>
 }
@@ -80,7 +75,6 @@ type ServiceDependencies = {
   createId?: () => string
   now?: () => string
   resolveAssignment?: (collaboratorId: string) => AssignmentSnapshot | null
-  mutationPolicy?: EntryMutationPolicy
   dateGuard?: EntryDateGuard
   audit?: AuditRecorder
   onStorageError?: (message: string, error: unknown) => void
@@ -124,18 +118,16 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
   private readonly createId: () => string
   private readonly now: () => string
   private readonly resolveAssignment: (collaboratorId: string) => AssignmentSnapshot | null
-  private readonly mutationPolicy: EntryMutationPolicy
   private readonly dateGuard: EntryDateGuard
   private readonly audit?: AuditRecorder
   private readonly onStorageError: (message: string, error: unknown) => void
   private readonly onAuditError: (message: string, error: unknown) => void
 
-  constructor({ storage, createId, now, resolveAssignment, mutationPolicy, dateGuard, audit, onStorageError, onAuditError }: ServiceDependencies) {
+  constructor({ storage, createId, now, resolveAssignment, dateGuard, audit, onStorageError, onAuditError }: ServiceDependencies) {
     this.storage = storage
     this.createId = createId ?? (() => crypto.randomUUID())
     this.now = now ?? (() => new Date().toISOString())
     this.resolveAssignment = resolveAssignment ?? (() => null)
-    this.mutationPolicy = mutationPolicy ?? { canMutate: async () => true }
     this.dateGuard = dateGuard ?? { getBlock: async () => ({ blocked: false }) }
     this.audit = audit
     this.onStorageError = onStorageError ?? ((message, error) => console.error(message, error))
@@ -225,10 +217,9 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
     if (JSON.stringify(persisted) !== serialized) throw new Error('A validação da gravação local falhou.')
   }
 
-  private async ensureMutable(collaboratorId: string, date: string) {
-    if (!await this.mutationPolicy.canMutate(collaboratorId, date)) {
-      throw new Error('Este dia está somente leitura ou fora de uma competência aberta.')
-    }
+  private async ensureMutable(_collaboratorId: string, _date: string) {
+    // Banco de Horas 2 não bloqueia lançamentos por competência fechada ou dia aprovado.
+    // O apontamento criado permanece disponível para validação posterior pelo Supervisor.
   }
 
   private async ensureDateAvailable(collaboratorId: string, date: string) {
@@ -455,7 +446,6 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
 export const timeEntryService = new LocalStorageTimeEntryService({
   storage: createBrowserStorage(),
   resolveAssignment: (collaboratorId) => profileService.resolveAssignment(collaboratorId),
-  mutationPolicy: dayApprovalService,
   dateGuard: entryDateAvailabilityService,
   audit: auditService,
 })

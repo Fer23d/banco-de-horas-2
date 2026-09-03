@@ -96,16 +96,14 @@ describe('validações e formatação', () => {
       { ...validData, entryDate: '2026-07-21' },
       demoClients,
       demoActivities,
-      { today: '2026-07-20', canMutateDate: true },
+      { today: '2026-07-20' },
     )
     expect(errors.entryDate).toBe('Não é permitido apontar horas em uma data futura.')
   })
 
-  it('bloqueia competência fechada e permite período reaberto', () => {
-    const blocked = validateTimeEntry(validData, demoClients, demoActivities, { today: '2026-07-20', canMutateDate: false })
-    const reopened = validateTimeEntry(validData, demoClients, demoActivities, { today: '2026-07-20', canMutateDate: true })
-    expect(blocked.entryDate).toBe('Esta data está aprovada ou fora de uma competência aberta.')
-    expect(reopened.entryDate).toBeUndefined()
+  it('não bloqueia apontamento por competência ou dia aprovado no Banco de Horas 2', () => {
+    const errors = validateTimeEntry(validData, demoClients, demoActivities, { today: '2026-07-20' })
+    expect(errors.entryDate).toBeUndefined()
   })
 
   it('mantém disciplina fixa em campo', () => {

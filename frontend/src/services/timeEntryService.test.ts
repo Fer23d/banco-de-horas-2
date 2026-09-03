@@ -100,7 +100,6 @@ function buildService(storage: StorageLike, overrides: Record<string, unknown> =
     createId: () => 'stable-entry-id',
     now: () => '2026-07-20T12:00:00.000Z',
     resolveAssignment: () => assignment,
-    mutationPolicy: { canMutate: async () => true },
     ...overrides,
   })
 }
@@ -423,10 +422,13 @@ describe('comandos e consultas de apontamento', () => {
     expect(summary.workedMinutes).toBe(0)
   })
 
-  it('bloqueia mutação quando a política informa dia aprovado', async () => {
+  it('ignora bloqueio de competência ao criar apontamento no Banco de Horas 2', async () => {
     const storage = new MemoryStorage()
-    const service = buildService(storage, { mutationPolicy: { canMutate: async () => false } })
-    await expect(service.create(collaboratorId, validData)).rejects.toThrow('somente leitura')
+    const service = buildService(storage)
+    await expect(service.create(collaboratorId, validData)).resolves.toMatchObject({
+      id: 'stable-entry-id',
+      entryDate: validData.entryDate,
+    })
   })
 
   it('bloqueia criação quando a data possui evento integral', async () => {
