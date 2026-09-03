@@ -121,24 +121,60 @@ function extractActivityDetails(text: string) {
   return sections.join(' ').replace(/\s+/g, ' ').trim() || undefined
 }
 
-function extractDateChunks(text: string) {
-  const sameLinePattern = /(?:^|\n)\s*(?:Data\s*OS|Data)\s*[:-]?\s*(\d{2}\/\d{2}\/\d{4})/gi
-  let matches = Array.from(text.matchAll(sameLinePattern))
-    .map((match) => ({ rawDate: match[1], isoDate: toIsoDate(match[1]), index: match.index ?? 0 }))
-    .filter((match): match is { rawDate: string; isoDate: string; index: number } => Boolean(match.isoDate))
-  if (matches.length === 0) {
-    const loosePattern = /\b(?:Data\s*OS|Data)\b[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
-    matches = Array.from(text.matchAll(loosePattern))
-      .map((match) => ({ rawDate: match[1], isoDate: toIsoDate(match[1]), index: match.index ?? 0 }))
-      .filter((match): match is { rawDate: string; isoDate: string; index: number } => Boolean(match.isoDate))
+type DateAnchor = {
+  isoDate: string
+  index: number
+}
+
+function collectDateAnchors(text: string): DateAnchor[] {
+  const anchorPatterns = [
+    /\b(?:Data\s*OS|Data)\b\s*[:-]?\s*(\d{2}\/\d{2}\/\d{4})/gi,
+    /\b(?:Data\s*OS|Data)\b[\s:.-]{0,60}?(\d{2}\/\d{2}\/\d{4})/gi,
+  ]
+  const anchors = new Map<string, DateAnchor>()
+
+  for (const pattern of anchorPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      const isoDate = toIsoDate(match[1])
+      const index = match.index ?? 0
+      if (isoDate) anchors.set(`${index}:${isoDate}`, { isoDate, index })
+    }
   }
 
-  if (matches.length === 0) return [{ isoDate: undefined, chunk: text }]
+  return Array.from(anchors.values()).sort((left, right) => left.index - right.index)
+}
 
-  return matches.map((match, index) => ({
-    isoDate: match.isoDate,
-    chunk: text.slice(match.index, matches[index + 1]?.index ?? text.length),
+function splitByPageMarkers(text: string) {
+  const markerPattern = /(?:^|\n)--- Página \d+ ---\n?/g
+  const markers = Array.from(text.matchAll(markerPattern))
+  if (markers.length === 0) return [text]
+
+  return markers
+    .map((marker, index) => {
+      const start = marker.index ?? 0
+      const end = markers[index + 1]?.index ?? text.length
+      return text.slice(start, end).trim()
+    })
+    .filter(Boolean)
+}
+
+function buildChunksFromAnchors(text: string, anchors: DateAnchor[]) {
+  return anchors.map((anchor, index) => ({
+    isoDate: anchor.isoDate,
+    chunk: text.slice(anchor.index, anchors[index + 1]?.index ?? text.length),
   }))
+}
+
+function extractDateChunks(text: string) {
+  const anchoredChunks = buildChunksFromAnchors(text, collectDateAnchors(text))
+  if (anchoredChunks.length > 1) return anchoredChunks
+
+  const pageChunks = splitByPageMarkers(text)
+    .map((chunk) => ({ isoDate: extractDates(chunk)[0], chunk }))
+    .filter((chunk): chunk is { isoDate: string; chunk: string } => Boolean(chunk.isoDate))
+  if (pageChunks.length > 1) return pageChunks
+  if (anchoredChunks.length === 1) return anchoredChunks
+  return [{ isoDate: undefined, chunk: text }]
 }
 
 function extractRdoDays(text: string, numeroObra = ''): ParsedRDODay[] {

@@ -77,6 +77,40 @@ describe('parser de RDO em PDF', () => {
     expect(parsed.dias[1].detalhamento).toContain('[13:30 - 17:30] Consolidação das evidências coletadas.')
   })
 
+  it('usa marcadores de página para separar folhas quando o PDF vem concatenado', () => {
+    const parsed = parseRDOText(`
+      --- Página 1 ---
+      Obra 25M020E
+      Data OS:
+      29/07/2026
+      DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      07:30 12:30 Atividade da primeira folha.
+      Total de Horas 5.0
+
+      --- Página 2 ---
+      Obra 25M020E
+      Data:
+      30/07/2026
+      DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      07:30 16:00 Atividade da segunda folha.
+      Total de Horas 8.5
+
+      --- Página 3 ---
+      Obra 25M020E
+      Data OS:
+      31/07/2026
+      DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      08:00 17:00 Atividade da terceira folha.
+      Total de Horas 9.0
+    `)
+
+    expect(parsed.dias).toHaveLength(3)
+    expect(parsed.dias.map((day) => day.data)).toEqual(['2026-07-29', '2026-07-30', '2026-07-31'])
+    expect(parsed.dias[0].detalhamento).toContain('primeira folha')
+    expect(parsed.dias[0].detalhamento).not.toContain('segunda folha')
+    expect(parsed.dias[2].detalhamento).toContain('terceira folha')
+  })
+
   it('captura total de horas mesmo com texto intermediário e converte fração decimal em minutos', () => {
     const parsed = parseRDOText(`
       Data 22/07/2026
