@@ -28,6 +28,13 @@ function parseDecimalHours(value: string) {
   }
 }
 
+function extractTotalHours(text: string) {
+  const totalHoursMatch = text.match(
+    /\bTotal\s+(?:de\s+)?Horas\b[\s\S]{0,80}?([0-9]{1,2}(?:[.,][0-9]{1,2})?)\b/i,
+  )
+  return totalHoursMatch?.[1]
+}
+
 export function parseRDOText(text: string): ParsedRDO {
   const normalizedText = text
     .replace(/\u00a0/g, ' ')
@@ -38,7 +45,7 @@ export function parseRDOText(text: string): ParsedRDO {
     ?? normalizedText.match(/\bObra\s+([A-Z0-9-]+)\b/i)
   const dateMatch = normalizedText.match(/(?:Data\s*OS|Data)[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/i)
     ?? normalizedText.match(/\b(\d{2}\/\d{2}\/\d{4})\b/)
-  const totalHoursMatch = normalizedText.match(/Total\s+de\s+Horas[\s:]*([0-9]+(?:[.,][0-9]+)?)/i)
+  const totalHours = extractTotalHours(normalizedText)
   const detailsMatch = normalizedText.match(/DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,1200}?)(?=\n\s*(?:Total\s+de\s+Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i)
 
   const details = detailsMatch?.[1]
@@ -49,7 +56,7 @@ export function parseRDOText(text: string): ParsedRDO {
   return {
     numeroObra: obraMatch?.[1]?.trim(),
     dataApontamento: dateMatch?.[1] ? toIsoDate(dateMatch[1]) : undefined,
-    ...parseDecimalHours(totalHoursMatch?.[1] ?? ''),
+    ...parseDecimalHours(totalHours ?? ''),
     detalhes: details || undefined,
   }
 }

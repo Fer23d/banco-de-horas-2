@@ -21,4 +21,16 @@ describe('parser de RDO em PDF', () => {
       detalhes: 'Deslocamento até a obra, reunião de segurança e levantamento de campo na área industrial.',
     })
   })
+
+  it('captura total de horas mesmo com texto intermediário e converte fração decimal em minutos', () => {
+    const parsed = parseRDOText(`
+      Data 22/07/2026
+      TOTAL DE HORAS
+      Quantidade apontada no período
+      8.5
+    `)
+
+    expect(parsed.horas).toBe('8')
+    expect(parsed.minutos).toBe('30')
+  })
 })
