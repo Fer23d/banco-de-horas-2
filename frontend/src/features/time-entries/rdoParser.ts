@@ -220,17 +220,23 @@ export async function parseRDO(file: File): Promise<ParsedRDO> {
   const pdfjsLib = await import('pdfjs-dist')
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
   const buffer = await file.arrayBuffer()
-  const document = await pdfjsLib.getDocument({ data: buffer }).promise
-  const pagesText: string[] = []
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
 
-  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
-    const page = await document.getPage(pageNumber)
-    const content = await page.getTextContent()
-    const pageText = textItemsToRows(content.items as TextContentItem[])
-    pagesText.push(pageText)
-    page.cleanup()
+  try {
+    const pageNumbers = Array.from({ length: pdf.numPages }, (_, index) => index + 1)
+    const pagesText = await Promise.all(pageNumbers.map(async (pageNumber) => {
+      const page = await pdf.getPage(pageNumber)
+      try {
+        const content = await page.getTextContent()
+        const pageText = textItemsToRows(content.items as TextContentItem[])
+        return `\n--- Página ${pageNumber} ---\n${pageText}\n`
+      } finally {
+        page.cleanup()
+      }
+    }))
+
+    return parseRDOText(pagesText.join('\n'))
+  } finally {
+    await pdf.cleanup()
   }
-
-  await document.cleanup()
-  return parseRDOText(pagesText.join('\n'))
 }
