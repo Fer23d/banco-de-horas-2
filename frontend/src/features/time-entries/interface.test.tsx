@@ -18,7 +18,7 @@ const filters: HistoryFiltersValue = {
 
 describe('markup acessível de apontamentos e histórico', () => {
   it('associa labels aos campos obrigatórios e limita a data ao dia corporativo', () => {
-    const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" onChange={vi.fn()} />)
+    const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('for="entry-start-date"')
     expect(markup).toContain('for="entry-end-date"')
     expect(markup).toContain('max="2026-07-20"')
@@ -30,7 +30,7 @@ describe('markup acessível de apontamentos e histórico', () => {
   })
 
   it('preserva o texto do número do projeto e exibe atividades corporativas quando não está em obra', () => {
-    const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" onChange={vi.fn()} />)
+    const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('* Escreva exatamente a numeração do projeto atual, caso já possua.')
     expect(markup).toContain('Estava em obra?')
     expect(markup).toContain('Férias ou não prestação de serviço')
@@ -41,7 +41,7 @@ describe('markup acessível de apontamentos e histórico', () => {
   })
 
   it('oculta número do projeto e exibe número da obra quando está em campo', () => {
-    const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" onChange={vi.fn()} />)
+    const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('for="work-site-number"')
     expect(markup).toContain('Número da obra')
     expect(markup).toContain('Serviços em campo')

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { demoActivities, demoClients } from '../../mocks/demoData'
 import { entryDateAvailabilityService } from '../../services/entryDateAvailabilityService'
 import { timeEntryService } from '../../services/timeEntryService'
+import type { ParsedRDODay } from './rdoParser'
 import type { CreateTimeEntryData, TimeEntry, TimeEntryValidationErrors } from './types'
 import { expandTimeEntryDates } from './domain'
 import { getCorporateToday, isIsoDate } from '../../shared/utils/date'
@@ -72,6 +73,7 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [extractedRdoDays, setExtractedRdoDays] = useState<ParsedRDODay[]>([])
 
   useEffect(() => {
     if (!profile || !sourceId) return
@@ -104,13 +106,16 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
     setSuccessMessage(null)
     const durationHours = Number(values.hours || 0)
     const durationRemainderMinutes = Number(values.minutes || 0)
-    const effectiveEndDate = mode === 'CREATE' ? values.endDate : values.startDate
-    const effectiveWeekdaysOnly = mode === 'CREATE' ? values.weekdaysOnly : true
-    const periodDates = mode === 'CREATE'
+    const hasExtractedRdoDays = mode === 'CREATE' && extractedRdoDays.length > 0
+    const firstExtractedDay = extractedRdoDays[0]
+    const effectiveStartDate = hasExtractedRdoDays ? firstExtractedDay.data : values.startDate
+    const effectiveEndDate = hasExtractedRdoDays ? firstExtractedDay.data : mode === 'CREATE' ? values.endDate : values.startDate
+    const effectiveWeekdaysOnly = hasExtractedRdoDays ? false : mode === 'CREATE' ? values.weekdaysOnly : true
+    const periodDates = mode === 'CREATE' && !hasExtractedRdoDays
       ? expandTimeEntryDates(values.startDate, effectiveEndDate, effectiveWeekdaysOnly)
       : [values.startDate]
     const data: CreateTimeEntryData = {
-      entryDate: values.startDate,
+      entryDate: effectiveStartDate,
       endDate: effectiveEndDate,
       weekdaysOnly: effectiveWeekdaysOnly,
       emObra: values.emObra,
@@ -119,8 +124,10 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       projectCode: values.emObra ? values.numeroObra : values.projectCode,
       activityId: values.activityId,
       disciplineCode: 'C',
-      durationMinutes: hoursAndMinutesToMinutes(durationHours, durationRemainderMinutes),
-      details: values.details,
+      durationMinutes: hasExtractedRdoDays
+        ? hoursAndMinutesToMinutes(firstExtractedDay.horas, firstExtractedDay.minutos)
+        : hoursAndMinutesToMinutes(durationHours, durationRemainderMinutes),
+      details: hasExtractedRdoDays ? firstExtractedDay.detalhamento : values.details,
     }
     let dateBlock = { blocked: false } as Awaited<ReturnType<typeof entryDateAvailabilityService.getBlock>>
     if (isIsoDate(data.entryDate)) {
@@ -137,7 +144,13 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       validationErrors.durationMinutes = 'Informe horas inteiras entre 0 e 24 e minutos inteiros entre 0 e 59, com total máximo de 24 horas.'
     }
     if (mode === 'CREATE') {
-      if (!isIsoDate(values.endDate)) {
+      if (hasExtractedRdoDays) {
+        const invalidExtractedDay = extractedRdoDays.find((day) => !isIsoDate(day.data) || !day.detalhamento.trim() || !areValidDurationParts(day.horas, day.minutos))
+        if (invalidExtractedDay) {
+          setSubmitError('O RDO possui um ou mais dias com data, duração ou detalhamento inválido.')
+          return false
+        }
+      } else if (!isIsoDate(values.endDate)) {
         validationErrors.endDate = 'Informe uma data final válida.'
       } else if (values.endDate < values.startDate) {
         validationErrors.endDate = 'A data final deve ser igual ou posterior à data inicial.'
@@ -166,14 +179,31 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
         await timeEntryService.duplicate(profile.id, source.id, source.version, data)
         setSuccessMessage('Apontamento duplicado com sucesso.')
       } else {
-        await timeEntryService.create(profile.id, data)
-        setSuccessMessage(periodDates.length > 1
-          ? `${periodDates.length} lançamentos salvos com sucesso para o período selecionado.`
-          : 'Apontamento salvo com sucesso.')
+        if (hasExtractedRdoDays) {
+          await Promise.all(extractedRdoDays.map((day) => timeEntryService.create(profile.id, {
+            ...data,
+            entryDate: day.data,
+            endDate: day.data,
+            weekdaysOnly: false,
+            numeroObra: values.numeroObra || day.numeroObra,
+            projectCode: values.numeroObra || day.numeroObra,
+            durationMinutes: hoursAndMinutesToMinutes(day.horas, day.minutos),
+            details: day.detalhamento,
+          })))
+          setSuccessMessage(`${extractedRdoDays.length} lançamentos do RDO salvos individualmente com sucesso.`)
+        } else {
+          await timeEntryService.create(profile.id, data)
+          setSuccessMessage(periodDates.length > 1
+            ? `${periodDates.length} lançamentos salvos com sucesso para o período selecionado.`
+            : 'Apontamento salvo com sucesso.')
+        }
       }
       setErrors({})
       setEditReasonError(null)
-      if (mode !== 'EDIT') setValues(emptyValues(data.entryDate))
+      if (mode !== 'EDIT') {
+        setValues(emptyValues(data.entryDate))
+        setExtractedRdoDays([])
+      }
       return true
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Não foi possível salvar o apontamento localmente.')
@@ -192,7 +222,9 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
     isSubmitting,
     submitError,
     successMessage,
+    extractedRdoDays,
     setField,
+    setExtractedRdoDays,
     submit,
   }
 }

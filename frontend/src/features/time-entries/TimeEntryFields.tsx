@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent } from 'react'
 import { demoClients } from '../../mocks/demoData'
+import { formatDatePtBr } from '../../shared/utils/date'
 import { activityOptionsByWorkContext } from './domain'
 import { parseRDO } from './rdoParser'
+import type { ParsedRDODay } from './rdoParser'
 import type { TimeEntryValidationErrors } from './types'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
@@ -19,18 +21,28 @@ type TimeEntryFieldsProps = {
   errors: TimeEntryValidationErrors
   maxDate: string
   allowBatchMode?: boolean
+  extractedRdoDays: ParsedRDODay[]
+  onRdoDaysChange: (days: ParsedRDODay[]) => void
   onChange: <Key extends keyof TimeEntryFormValues>(field: Key, value: TimeEntryFormValues[Key]) => void
 }
 
-export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, onChange }: TimeEntryFieldsProps) {
+export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, extractedRdoDays, onRdoDaysChange, onChange }: TimeEntryFieldsProps) {
   const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
   const [rdoMessage, setRdoMessage] = useState<string | null>(null)
   const activityOptions = values.emObra ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
+  const hasExtractedRdoDays = extractedRdoDays.length > 0
+  const rdoSummary = extractedRdoDays
+    .slice(0, 4)
+    .map((day) => `${formatDatePtBr(day.data)} (${day.horas}h${String(day.minutos).padStart(2, '0')})`)
+    .join(', ')
 
   function handleWorkContextChange(emObra: boolean) {
     onChange('emObra', emObra)
     onChange('activityId', '')
-    if (!emObra) onChange('numeroObra', '')
+    onRdoDaysChange([])
+    if (!emObra) {
+      onChange('numeroObra', '')
+    }
     setRdoStatus('idle')
     setRdoMessage(null)
   }
@@ -50,21 +62,19 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         onChange('numeroObra', parsed.numeroObra)
         appliedFields += 1
       }
-      if (parsed.dataInicial || parsed.dataFinal || parsed.dataApontamento) {
-        const startDate = parsed.dataInicial ?? parsed.dataApontamento ?? parsed.dataFinal
-        const endDate = parsed.dataFinal ?? startDate
-        if (startDate) onChange('startDate', startDate)
-        if (endDate) onChange('endDate', endDate)
+      if (parsed.dias.length > 0) {
+        const orderedDays = [...parsed.dias].sort((left, right) => left.data.localeCompare(right.data))
+        onRdoDaysChange(orderedDays)
+        const firstDay = orderedDays[0]
+        const lastDay = orderedDays.at(-1) ?? firstDay
+        onChange('startDate', firstDay.data)
+        onChange('endDate', lastDay.data)
+        onChange('hours', String(firstDay.horas))
+        onChange('minutes', String(firstDay.minutos))
+        onChange('details', firstDay.detalhamento)
         appliedFields += 1
-      }
-      if (parsed.horas !== undefined && parsed.minutos !== undefined) {
-        onChange('hours', parsed.horas)
-        onChange('minutes', parsed.minutos)
-        appliedFields += 1
-      }
-      if (parsed.detalhes) {
-        onChange('details', parsed.detalhes)
-        appliedFields += 1
+      } else {
+        onRdoDaysChange([])
       }
       setRdoStatus(appliedFields > 0 ? 'success' : 'error')
       setRdoMessage(appliedFields > 0
@@ -82,12 +92,12 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label htmlFor="entry-start-date" className="text-sm font-bold ui-text">Data Inicial</label>
-            <input id="entry-start-date" name="startDate" type="date" max={maxDate} value={values.startDate} onChange={(event) => onChange('startDate', event.target.value)} className={fieldClassName} aria-invalid={Boolean(errors.entryDate)} aria-describedby={errors.entryDate ? 'entry-start-date-error' : undefined} />
+            <input id="entry-start-date" name="startDate" type="date" max={maxDate} value={values.startDate} onChange={(event) => onChange('startDate', event.target.value)} className={fieldClassName} disabled={hasExtractedRdoDays} aria-invalid={Boolean(errors.entryDate)} aria-describedby={errors.entryDate ? 'entry-start-date-error' : undefined} />
             <FieldError id="entry-start-date-error" message={errors.entryDate} />
           </div>
           <div>
             <label htmlFor="entry-end-date" className="text-sm font-bold ui-text">Data Final</label>
-            <input id="entry-end-date" name="endDate" type="date" min={values.startDate} value={values.endDate} onChange={(event) => onChange('endDate', event.target.value)} className={fieldClassName} disabled={!allowBatchMode} aria-invalid={Boolean(errors.endDate)} aria-describedby={errors.endDate ? 'entry-end-date-error' : undefined} />
+            <input id="entry-end-date" name="endDate" type="date" min={values.startDate} value={values.endDate} onChange={(event) => onChange('endDate', event.target.value)} className={fieldClassName} disabled={!allowBatchMode || hasExtractedRdoDays} aria-invalid={Boolean(errors.endDate)} aria-describedby={errors.endDate ? 'entry-end-date-error' : undefined} />
             <FieldError id="entry-end-date-error" message={errors.endDate} />
           </div>
         </div>
@@ -95,9 +105,14 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
           Se a data final for diferente, o sistema criará automaticamente lançamentos individuais para cada dia do período.
         </p>
         <label className={`mt-3 inline-flex items-center gap-2 text-sm font-semibold ui-text ${allowBatchMode ? '' : 'opacity-60'}`}>
-          <input type="checkbox" checked={values.weekdaysOnly} onChange={(event) => onChange('weekdaysOnly', event.target.checked)} disabled={!allowBatchMode} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+          <input type="checkbox" checked={values.weekdaysOnly} onChange={(event) => onChange('weekdaysOnly', event.target.checked)} disabled={!allowBatchMode || hasExtractedRdoDays} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
           Somente dias úteis
         </label>
+        {hasExtractedRdoDays && (
+          <p className="mt-3 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-navigation-active)] px-3 py-2 text-xs font-semibold text-[var(--color-navigation-active-text)]">
+            {extractedRdoDays.length} dia(s) lido(s): {rdoSummary}{extractedRdoDays.length > 4 ? '...' : ''}. As datas e durações serão salvas individualmente pelo RDO.
+          </p>
+        )}
       </div>
 
       <fieldset className="md:col-span-2 rounded-2xl border ui-border ui-surface-subtle p-4">

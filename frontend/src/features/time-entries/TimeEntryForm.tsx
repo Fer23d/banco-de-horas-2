@@ -40,7 +40,15 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
       )}
       {controller.submitError && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{controller.submitError}</p>}
 
-      <TimeEntryFields values={controller.values} errors={controller.errors} maxDate={getCorporateToday()} allowBatchMode={controller.mode === 'CREATE'} onChange={controller.setField} />
+      <TimeEntryFields
+        values={controller.values}
+        errors={controller.errors}
+        maxDate={getCorporateToday()}
+        allowBatchMode={controller.mode === 'CREATE'}
+        extractedRdoDays={controller.extractedRdoDays}
+        onRdoDaysChange={controller.setExtractedRdoDays}
+        onChange={controller.setField}
+      />
 
       <fieldset>
         <legend className="text-sm font-bold ui-text">Duração em horas e minutos</legend>
@@ -48,11 +56,11 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
         <div className="mt-2 grid max-w-sm grid-cols-2 gap-3">
           <div>
             <label htmlFor="duration-hours" className="text-xs font-semibold ui-text-muted">Horas</label>
-            <input id="duration-hours" name="hours" type="number" min="0" max="24" step="1" inputMode="numeric" value={controller.values.hours} onChange={(event) => controller.setField('hours', event.target.value)} className={fieldClassName} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
+            <input id="duration-hours" name="hours" type="number" min="0" max="24" step="1" inputMode="numeric" value={controller.values.hours} onChange={(event) => controller.setField('hours', event.target.value)} className={fieldClassName} disabled={controller.extractedRdoDays.length > 0} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
           </div>
           <div>
             <label htmlFor="duration-minutes" className="text-xs font-semibold ui-text-muted">Minutos</label>
-            <input id="duration-minutes" name="minutes" type="number" min="0" max="59" step="1" inputMode="numeric" value={controller.values.minutes} onChange={(event) => controller.setField('minutes', event.target.value)} className={fieldClassName} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
+            <input id="duration-minutes" name="minutes" type="number" min="0" max="59" step="1" inputMode="numeric" value={controller.values.minutes} onChange={(event) => controller.setField('minutes', event.target.value)} className={fieldClassName} disabled={controller.extractedRdoDays.length > 0} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
           </div>
         </div>
         <FieldError id="duration-error" message={controller.errors.durationMinutes} />

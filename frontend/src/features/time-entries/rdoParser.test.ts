@@ -20,28 +20,32 @@ describe('parser de RDO em PDF', () => {
 
     expect(parsed).toEqual({
       numeroObra: '25M020E',
-      dataApontamento: '2026-07-28',
-      dataInicial: '2026-07-28',
-      dataFinal: '2026-07-28',
-      horas: '9',
-      minutos: '0',
-      detalhes: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança. Organização das ferramentas, EPIs e alinhamento com a equipe local.\n\n[13:30 - 17:30] Levantamento de campo na área industrial. Registro fotográfico e conferência dos pontos de interferência.',
+      dias: [{
+        data: '2026-07-28',
+        horas: 9,
+        minutos: 0,
+        numeroObra: '25M020E',
+        detalhamento: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança. Organização das ferramentas, EPIs e alinhamento com a equipe local.\n\n[13:30 - 17:30] Levantamento de campo na área industrial. Registro fotográfico e conferência dos pontos de interferência.',
+      }],
     })
   })
 
-  it('extrai o intervalo mínimo e máximo quando o PDF possui múltiplas datas', () => {
+  it('separa múltiplas datas em apontamentos independentes', () => {
     const parsed = parseRDOText(`
-      Data OS 14/07/2026
-      Conteúdo intermediário
       Data 12/07/2026
-      Outra página do relatório
-      Data OS 15/07/2026
+      HORA DE INÍCIO HORA DE TÉRMINO DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      07:30 12:30 Levantamento no campo.
+      Total de Horas 5.0
       Data 13/07/2026
+      HORA DE INÍCIO HORA DE TÉRMINO DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      08:00 16:30 Organização de relatórios técnicos.
+      Total de Horas 8.5
     `)
 
-    expect(parsed.dataInicial).toBe('2026-07-12')
-    expect(parsed.dataFinal).toBe('2026-07-15')
-    expect(parsed.dataApontamento).toBe('2026-07-12')
+    expect(parsed.dias).toHaveLength(2)
+    expect(parsed.dias[0]).toMatchObject({ data: '2026-07-12', horas: 5, minutos: 0 })
+    expect(parsed.dias[1]).toMatchObject({ data: '2026-07-13', horas: 8, minutos: 30 })
+    expect(parsed.dias[1].detalhamento).toContain('[08:00 - 16:30] Organização de relatórios técnicos.')
   })
 
   it('captura total de horas mesmo com texto intermediário e converte fração decimal em minutos', () => {
@@ -52,7 +56,6 @@ describe('parser de RDO em PDF', () => {
       8.5
     `)
 
-    expect(parsed.horas).toBe('8')
-    expect(parsed.minutos).toBe('30')
+    expect(parsed.dias[0]).toMatchObject({ data: '2026-07-22', horas: 8, minutos: 30 })
   })
 })

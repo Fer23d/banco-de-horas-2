@@ -1,13 +1,16 @@
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 
+export type ParsedRDODay = {
+  data: string
+  horas: number
+  minutos: number
+  detalhamento: string
+  numeroObra: string
+}
+
 export type ParsedRDO = {
   numeroObra?: string
-  dataApontamento?: string
-  dataInicial?: string
-  dataFinal?: string
-  horas?: string
-  minutos?: string
-  detalhes?: string
+  dias: ParsedRDODay[]
 }
 
 type TextContentItem = {
@@ -21,31 +24,26 @@ function toIsoDate(date: string) {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 }
 
-function extractDateRange(text: string) {
+function extractDates(text: string) {
   const datePattern = /\b(?:Data\s*OS|Data)\b[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
   let dateMatches = Array.from(text.matchAll(datePattern)).map((match) => match[1])
   if (dateMatches.length === 0) {
     dateMatches = Array.from(text.matchAll(/\b(\d{2}\/\d{2}\/\d{4})\b/g)).map((match) => match[1])
   }
 
-  const uniqueIsoDates = Array.from(new Set(dateMatches.flatMap((date) => {
+  return Array.from(new Set(dateMatches.flatMap((date) => {
     const isoDate = toIsoDate(date)
     return isoDate ? [isoDate] : []
   }))).sort()
-
-  return {
-    dataInicial: uniqueIsoDates[0],
-    dataFinal: uniqueIsoDates.at(-1),
-  }
 }
 
 function parseDecimalHours(value: string) {
   const normalized = Number(value.replace(',', '.'))
-  if (!Number.isFinite(normalized) || normalized < 0) return {}
+  if (!Number.isFinite(normalized) || normalized < 0) return undefined
   const totalMinutes = Math.round(normalized * 60)
   return {
-    horas: String(Math.floor(totalMinutes / 60)),
-    minutos: String(totalMinutes % 60),
+    horas: Math.floor(totalMinutes / 60),
+    minutos: totalMinutes % 60,
   }
 }
 
@@ -111,6 +109,53 @@ function extractActivityDetails(text: string) {
   return section.replace(/\s+/g, ' ').trim() || undefined
 }
 
+function extractDateChunks(text: string) {
+  const datePattern = /\b(?:Data\s*OS|Data)\b[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
+  const matches = Array.from(text.matchAll(datePattern))
+    .map((match) => ({ rawDate: match[1], isoDate: toIsoDate(match[1]), index: match.index ?? 0 }))
+    .filter((match): match is { rawDate: string; isoDate: string; index: number } => Boolean(match.isoDate))
+
+  if (matches.length === 0) return [{ isoDate: undefined, chunk: text }]
+
+  return matches.map((match, index) => ({
+    isoDate: match.isoDate,
+    chunk: text.slice(match.index, matches[index + 1]?.index ?? text.length),
+  }))
+}
+
+function extractRdoDays(text: string, numeroObra = ''): ParsedRDODay[] {
+  const chunks = extractDateChunks(text)
+  const parsedDays = chunks.flatMap(({ isoDate, chunk }) => {
+    const date = isoDate ?? extractDates(chunk)[0]
+    if (!date) return []
+    const decimalHours = extractTotalHours(chunk)
+    const duration = parseDecimalHours(decimalHours ?? '')
+    if (!duration) return []
+    const details = extractActivityDetails(chunk)
+    return [{
+      data: date,
+      horas: duration.horas,
+      minutos: duration.minutos,
+      detalhamento: details ?? 'Atividades importadas do RDO.',
+      numeroObra,
+    }]
+  })
+
+  if (parsedDays.length > 0) return parsedDays
+
+  const dates = extractDates(text)
+  const duration = parseDecimalHours(extractTotalHours(text) ?? '')
+  if (!duration) return []
+  const details = extractActivityDetails(text)
+  return dates.map((date) => ({
+    data: date,
+    horas: duration.horas,
+    minutos: duration.minutos,
+    detalhamento: details ?? 'Atividades importadas do RDO.',
+    numeroObra,
+  }))
+}
+
 function getTextItemPosition(item: TextContentItem) {
   const transform = Array.isArray(item.transform) ? item.transform : []
   const x = typeof transform[4] === 'number' ? transform[4] : 0
@@ -145,17 +190,11 @@ export function parseRDOText(text: string): ParsedRDO {
 
   const obraMatch = normalizedText.match(/(?:N[º°]?\s*do\s*QQP|Obra)[\s\S]{0,120}?Obra\s+([A-Z0-9-]+)/i)
     ?? normalizedText.match(/\bObra\s+([A-Z0-9-]+)\b/i)
-  const dateRange = extractDateRange(normalizedText)
-  const totalHours = extractTotalHours(normalizedText)
-  const details = extractActivityDetails(normalizedText)
+  const numeroObra = obraMatch?.[1]?.trim()
 
   return {
-    numeroObra: obraMatch?.[1]?.trim(),
-    dataApontamento: dateRange.dataInicial,
-    dataInicial: dateRange.dataInicial,
-    dataFinal: dateRange.dataFinal,
-    ...parseDecimalHours(totalHours ?? ''),
-    detalhes: details || undefined,
+    numeroObra,
+    dias: extractRdoDays(normalizedText, numeroObra),
   }
 }
 
