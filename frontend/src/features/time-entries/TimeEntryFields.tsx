@@ -87,7 +87,8 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
           </div>
           <div>
             <label htmlFor="entry-end-date" className="text-sm font-bold ui-text">Data Final</label>
-            <input id="entry-end-date" name="endDate" type="date" min={values.startDate} max={maxDate} value={values.endDate} onChange={(event) => onChange('endDate', event.target.value)} className={fieldClassName} disabled={!allowBatchMode} />
+            <input id="entry-end-date" name="endDate" type="date" min={values.startDate} value={values.endDate} onChange={(event) => onChange('endDate', event.target.value)} className={fieldClassName} disabled={!allowBatchMode} aria-invalid={Boolean(errors.endDate)} aria-describedby={errors.endDate ? 'entry-end-date-error' : undefined} />
+            <FieldError id="entry-end-date-error" message={errors.endDate} />
           </div>
         </div>
         <p className="mt-2 text-xs ui-text-subtle">

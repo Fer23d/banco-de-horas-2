@@ -143,9 +143,9 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
     }
     if (mode === 'CREATE') {
       if (!isIsoDate(values.endDate)) {
-        validationErrors.entryDate = validationErrors.entryDate ?? 'Informe uma data final válida.'
+        validationErrors.endDate = 'Informe uma data final válida.'
       } else if (values.endDate < values.startDate) {
-        validationErrors.entryDate = validationErrors.entryDate ?? 'A data final deve ser igual ou posterior à data inicial.'
+        validationErrors.endDate = 'A data final deve ser igual ou posterior à data inicial.'
       } else if (values.startDate !== values.endDate && periodDates.length === 0) {
         setSubmitError('O período selecionado não contém dias úteis para lançamento.')
         return false
