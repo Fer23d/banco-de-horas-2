@@ -10,6 +10,7 @@ export type ParsedRDO = {
 
 type TextContentItem = {
   str?: string
+  transform?: unknown
 }
 
 function toIsoDate(date: string) {
@@ -37,16 +38,22 @@ function extractTotalHours(text: string) {
 
 function extractActivityDetails(text: string) {
   const sectionMatch = text.match(
-    /DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,1800}?)(?=\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i,
+    /(?:HORA\s+DE\s+IN[IÍ]CIO[\s\S]{0,160}?HORA\s+DE\s+T[ÉE]RMINO[\s\S]{0,220}?)?DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,2400}?)(?=\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i,
   )
   const section = sectionMatch?.[1]
+    ?.replace(/\bHORA\s+DE\s+IN[IÍ]CIO\b/gi, ' ')
+    .replace(/\bHORA\s+DE\s+T[ÉE]RMINO\b/gi, ' ')
+    .replace(/\bDESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\b/gi, ' ')
   if (!section) return undefined
 
-  const rowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
-  const rows = Array.from(section.matchAll(rowPattern)).flatMap((match) => {
+  const rowPattern = /(?:^|\n)\s*(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\n\s*\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\n?\s*Total\s+(?:de\s+)?Horas\b|$)/gi
+  const inlineRowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
+  const matches = Array.from(section.matchAll(rowPattern))
+  const rows = (matches.length > 0 ? matches : Array.from(section.matchAll(inlineRowPattern))).flatMap((match) => {
     const startTime = match[1].padStart(5, '0')
     const endTime = match[2].padStart(5, '0')
     const description = match[3]
+      .replace(/\b(?:HORA\s+DE\s+IN[IÍ]CIO|HORA\s+DE\s+T[ÉE]RMINO|DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL)\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim()
     return description ? [`[${startTime} - ${endTime}] ${description}`] : []
@@ -54,6 +61,32 @@ function extractActivityDetails(text: string) {
 
   if (rows.length > 0) return rows.join('\n\n')
   return section.replace(/\s+/g, ' ').trim() || undefined
+}
+
+function getTextItemPosition(item: TextContentItem) {
+  const transform = Array.isArray(item.transform) ? item.transform : []
+  const x = typeof transform[4] === 'number' ? transform[4] : 0
+  const y = typeof transform[5] === 'number' ? transform[5] : 0
+  return { x, y }
+}
+
+function textItemsToRows(items: TextContentItem[]) {
+  const rows = new Map<number, Array<{ x: number; text: string }>>()
+  items.forEach((item) => {
+    const text = item.str?.trim()
+    if (!text) return
+    const { x, y } = getTextItemPosition(item)
+    const rowKey = Math.round(y)
+    rows.set(rowKey, [...(rows.get(rowKey) ?? []), { x, text }])
+  })
+
+  return Array.from(rows.entries())
+    .sort(([leftY], [rightY]) => rightY - leftY)
+    .map(([, row]) => row
+      .sort((left, right) => left.x - right.x)
+      .map((item) => item.text)
+      .join(' '))
+    .join('\n')
 }
 
 export function parseRDOText(text: string): ParsedRDO {
@@ -87,10 +120,7 @@ export async function parseRDO(file: File): Promise<ParsedRDO> {
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber)
     const content = await page.getTextContent()
-    const pageText = content.items
-      .map((item) => (item as TextContentItem).str ?? '')
-      .filter(Boolean)
-      .join(' ')
+    const pageText = textItemsToRows(content.items as TextContentItem[])
     pagesText.push(pageText)
     page.cleanup()
   }

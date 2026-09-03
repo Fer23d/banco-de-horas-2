@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import type { AssignmentSnapshot } from '../features/squads/types'
 import { LocalStorageSupervisorService } from './supervisorService'
 import type { StorageLike } from './storage'
-import { TIME_ENTRY_STORAGE_KEY } from './timeEntryService'
+import { LocalStorageTimeEntryService, TIME_ENTRY_STORAGE_KEY } from './timeEntryService'
 import { TIME_OFF_STORAGE_KEY } from './timeOffService'
 
 function createMemoryStorage(): StorageLike {
@@ -92,6 +93,44 @@ describe('LocalStorageSupervisorService', () => {
     await expect(service.listEntries()).resolves.toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: 'real-entry-001',
+        collaboratorId: 'collaborator-real-001',
+        projectCode: 'SM&A-REAL-001',
+        status: 'PENDING',
+      }),
+    ]))
+  })
+
+  it('mostra como pendente um apontamento criado pelo fluxo do colaborador', async () => {
+    const storage = createMemoryStorage()
+    const assignment: AssignmentSnapshot = {
+      squadId: 'squad-campo',
+      squadName: 'Equipe de Campo',
+      supervisorId: 'demo-supervisor-001',
+      supervisorName: 'Jeen Carlos E. Azevedo',
+    }
+    const timeEntryService = new LocalStorageTimeEntryService({
+      storage,
+      createId: () => 'created-entry-001',
+      now: () => '2026-07-31T12:00:00.000Z',
+      resolveAssignment: () => assignment,
+    })
+    await timeEntryService.create('collaborator-real-001', {
+      entryDate: '2026-07-31',
+      clientId: 'client-real',
+      projectCode: 'SM&A-REAL-001',
+      activityId: 'field-services',
+      disciplineCode: 'C',
+      durationMinutes: 300,
+      details: 'Serviços em campo conforme RDO.',
+      emObra: true,
+      numeroObra: '25M020E',
+    })
+
+    const supervisorService = new LocalStorageSupervisorService(storage, () => '2026-07-31T13:00:00.000Z', [])
+
+    await expect(supervisorService.listEntries()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'created-entry-001',
         collaboratorId: 'collaborator-real-001',
         projectCode: 'SM&A-REAL-001',
         status: 'PENDING',
