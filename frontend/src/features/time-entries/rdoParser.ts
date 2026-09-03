@@ -3,6 +3,8 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
 export type ParsedRDO = {
   numeroObra?: string
   dataApontamento?: string
+  dataInicial?: string
+  dataFinal?: string
   horas?: string
   minutos?: string
   detalhes?: string
@@ -17,6 +19,24 @@ function toIsoDate(date: string) {
   const [day, month, year] = date.split('/')
   if (!day || !month || !year) return undefined
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
+function extractDateRange(text: string) {
+  const datePattern = /\b(?:Data\s*OS|Data)\b[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
+  let dateMatches = Array.from(text.matchAll(datePattern)).map((match) => match[1])
+  if (dateMatches.length === 0) {
+    dateMatches = Array.from(text.matchAll(/\b(\d{2}\/\d{2}\/\d{4})\b/g)).map((match) => match[1])
+  }
+
+  const uniqueIsoDates = Array.from(new Set(dateMatches.flatMap((date) => {
+    const isoDate = toIsoDate(date)
+    return isoDate ? [isoDate] : []
+  }))).sort()
+
+  return {
+    dataInicial: uniqueIsoDates[0],
+    dataFinal: uniqueIsoDates.at(-1),
+  }
 }
 
 function parseDecimalHours(value: string) {
@@ -125,14 +145,15 @@ export function parseRDOText(text: string): ParsedRDO {
 
   const obraMatch = normalizedText.match(/(?:N[º°]?\s*do\s*QQP|Obra)[\s\S]{0,120}?Obra\s+([A-Z0-9-]+)/i)
     ?? normalizedText.match(/\bObra\s+([A-Z0-9-]+)\b/i)
-  const dateMatch = normalizedText.match(/(?:Data\s*OS|Data)[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/i)
-    ?? normalizedText.match(/\b(\d{2}\/\d{2}\/\d{4})\b/)
+  const dateRange = extractDateRange(normalizedText)
   const totalHours = extractTotalHours(normalizedText)
   const details = extractActivityDetails(normalizedText)
 
   return {
     numeroObra: obraMatch?.[1]?.trim(),
-    dataApontamento: dateMatch?.[1] ? toIsoDate(dateMatch[1]) : undefined,
+    dataApontamento: dateRange.dataInicial,
+    dataInicial: dateRange.dataInicial,
+    dataFinal: dateRange.dataFinal,
     ...parseDecimalHours(totalHours ?? ''),
     detalhes: details || undefined,
   }

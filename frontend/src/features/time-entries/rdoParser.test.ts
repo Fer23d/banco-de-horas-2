@@ -21,10 +21,27 @@ describe('parser de RDO em PDF', () => {
     expect(parsed).toEqual({
       numeroObra: '25M020E',
       dataApontamento: '2026-07-28',
+      dataInicial: '2026-07-28',
+      dataFinal: '2026-07-28',
       horas: '9',
       minutos: '0',
       detalhes: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança. Organização das ferramentas, EPIs e alinhamento com a equipe local.\n\n[13:30 - 17:30] Levantamento de campo na área industrial. Registro fotográfico e conferência dos pontos de interferência.',
     })
+  })
+
+  it('extrai o intervalo mínimo e máximo quando o PDF possui múltiplas datas', () => {
+    const parsed = parseRDOText(`
+      Data OS 14/07/2026
+      Conteúdo intermediário
+      Data 12/07/2026
+      Outra página do relatório
+      Data OS 15/07/2026
+      Data 13/07/2026
+    `)
+
+    expect(parsed.dataInicial).toBe('2026-07-12')
+    expect(parsed.dataFinal).toBe('2026-07-15')
+    expect(parsed.dataApontamento).toBe('2026-07-12')
   })
 
   it('captura total de horas mesmo com texto intermediário e converte fração decimal em minutos', () => {

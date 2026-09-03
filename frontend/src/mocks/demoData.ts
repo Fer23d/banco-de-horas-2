@@ -18,6 +18,7 @@ export const demoCollaborator: CollaboratorProfile = {
 }
 
 export const demoClients: Client[] = [
+  { id: 'client-vale', name: 'Vale', active: true },
   { id: 'client-industrial-alpha', name: 'Cliente Industrial Alfa', active: true },
   { id: 'client-energy-beta', name: 'Cliente Energia Beta', active: true },
 ]
