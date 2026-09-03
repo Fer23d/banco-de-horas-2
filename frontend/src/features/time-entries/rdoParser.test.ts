@@ -48,6 +48,35 @@ describe('parser de RDO em PDF', () => {
     expect(parsed.dias[1].detalhamento).toContain('[08:00 - 16:30] Organização de relatórios técnicos.')
   })
 
+  it('mantém os detalhamentos de múltiplas folhas vinculados aos respectivos dias', () => {
+    const parsed = parseRDOText(`
+      Obra 25M020E
+      Data 29/07/2026
+      HORA DE INÍCIO
+      HORA DE TÉRMINO
+      DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      07:30 12:30 Deslocamento SG Hotel -> Brucutu.
+      Organização das ferramentas e alinhamento com a equipe local.
+      Total de Horas 5.0
+
+      Data OS 30/07/2026
+      HORA DE INÍCIO
+      HORA DE TÉRMINO
+      DESCRIÇÃO DA ATIVIDADE E DO LOCAL
+      07:30 12:30 Levantamento de campo na SE-140A-01.
+      Continuidade do levantamento em área externa.
+      13:30 17:30 Consolidação das evidências coletadas.
+      Total de Horas 9.0
+    `)
+
+    expect(parsed.dias).toHaveLength(2)
+    expect(parsed.dias[0]).toMatchObject({ data: '2026-07-29', horas: 5, minutos: 0, numeroObra: '25M020E' })
+    expect(parsed.dias[0].detalhamento).toContain('Organização das ferramentas')
+    expect(parsed.dias[0].detalhamento).not.toContain('SE-140A-01')
+    expect(parsed.dias[1]).toMatchObject({ data: '2026-07-30', horas: 9, minutos: 0, numeroObra: '25M020E' })
+    expect(parsed.dias[1].detalhamento).toContain('[13:30 - 17:30] Consolidação das evidências coletadas.')
+  })
+
   it('captura total de horas mesmo com texto intermediário e converte fração decimal em minutos', () => {
     const parsed = parseRDOText(`
       Data 22/07/2026

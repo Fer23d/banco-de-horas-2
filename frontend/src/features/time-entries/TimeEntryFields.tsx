@@ -16,6 +16,16 @@ export function FieldError({ id, message }: { id: string; message?: string | nul
   return <p id={id} className="mt-1.5 text-sm font-medium text-red-700 dark:text-red-300">{message}</p>
 }
 
+function formatRdoDayDuration(day: ParsedRDODay) {
+  return `${day.horas}h${String(day.minutos).padStart(2, '0')}`
+}
+
+function formatRdoDetailsForReview(days: ParsedRDODay[]) {
+  return days
+    .map((day) => `--- Dia ${formatDatePtBr(day.data)} ---\n${day.detalhamento}`)
+    .join('\n\n')
+}
+
 type TimeEntryFieldsProps = {
   values: TimeEntryFormValues
   errors: TimeEntryValidationErrors
@@ -29,17 +39,19 @@ type TimeEntryFieldsProps = {
 export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, extractedRdoDays, onRdoDaysChange, onChange }: TimeEntryFieldsProps) {
   const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
   const [rdoMessage, setRdoMessage] = useState<string | null>(null)
+  const [mostrarTodosDias, setMostrarTodosDias] = useState(false)
   const activityOptions = values.emObra ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
   const hasExtractedRdoDays = extractedRdoDays.length > 0
   const rdoSummary = extractedRdoDays
     .slice(0, 4)
-    .map((day) => `${formatDatePtBr(day.data)} (${day.horas}h${String(day.minutos).padStart(2, '0')})`)
+    .map((day) => `${formatDatePtBr(day.data)} (${formatRdoDayDuration(day)})`)
     .join(', ')
 
   function handleWorkContextChange(emObra: boolean) {
     onChange('emObra', emObra)
     onChange('activityId', '')
     onRdoDaysChange([])
+    setMostrarTodosDias(false)
     if (!emObra) {
       onChange('numeroObra', '')
     }
@@ -56,6 +68,7 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
     try {
       const parsed = await parseRDO(file)
       let appliedFields = 0
+      setMostrarTodosDias(false)
       onChange('clientId', VALE_CLIENT_ID)
       appliedFields += 1
       if (parsed.numeroObra) {
@@ -71,7 +84,7 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         onChange('endDate', lastDay.data)
         onChange('hours', String(firstDay.horas))
         onChange('minutes', String(firstDay.minutos))
-        onChange('details', firstDay.detalhamento)
+        onChange('details', formatRdoDetailsForReview(orderedDays))
         appliedFields += 1
       } else {
         onRdoDaysChange([])
@@ -109,9 +122,26 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
           Somente dias úteis
         </label>
         {hasExtractedRdoDays && (
-          <p className="mt-3 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-navigation-active)] px-3 py-2 text-xs font-semibold text-[var(--color-navigation-active-text)]">
-            {extractedRdoDays.length} dia(s) lido(s): {rdoSummary}{extractedRdoDays.length > 4 ? '...' : ''}. As datas e durações serão salvas individualmente pelo RDO.
-          </p>
+          <div className="mt-3 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-navigation-active)] px-3 py-2 text-xs font-semibold text-[var(--color-navigation-active-text)]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <p>
+                {extractedRdoDays.length} dia(s) lido(s): {mostrarTodosDias ? 'as datas e durações abaixo serão salvas individualmente pelo RDO.' : `${rdoSummary}${extractedRdoDays.length > 4 ? '...' : ''}.`}
+              </p>
+              <button type="button" onClick={() => setMostrarTodosDias((current) => !current)} className="text-left text-xs font-extrabold underline decoration-[var(--color-primary)] underline-offset-4 sm:text-right">
+                {mostrarTodosDias ? 'Ocultar' : 'Ver todos'}
+              </button>
+            </div>
+            {mostrarTodosDias && (
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {extractedRdoDays.map((day) => (
+                  <li key={day.data} className="rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-surface)]/70 px-3 py-2">
+                    <span className="block font-extrabold">{formatDatePtBr(day.data)}</span>
+                    <span className="mt-1 block ui-text-muted">{formatRdoDayDuration(day)} lançadas</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
 

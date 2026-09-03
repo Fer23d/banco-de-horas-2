@@ -54,21 +54,18 @@ function extractTotalHours(text: string) {
   return totalHoursMatch?.[1]
 }
 
-function extractActivityDetails(text: string) {
-  const sectionMatch = text.match(
-    /(?:HORA\s+DE\s+IN[IÍ]CIO[\s\S]{0,160}?HORA\s+DE\s+T[ÉE]RMINO[\s\S]{0,220}?)?DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]*?)(?=\n?\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Fotos|Anexos)\b|$)/i,
-  )
-  const section = sectionMatch?.[1]
+function parseActivitySection(section: string) {
+  const cleanSection = section
     ?.replace(/\bHORA\s+DE\s+IN[IÍ]CIO\b/gi, ' ')
     .replace(/\bHORA\s+DE\s+T[ÉE]RMINO\b/gi, ' ')
     .replace(/\bDESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\b/gi, ' ')
-  if (!section) return undefined
+  if (!cleanSection) return []
 
   const timeRowPattern = /^\s*(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s*(.*)$/i
   const stopPattern = /\b(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Fotos|Anexos)\b/i
   const activityRows: Array<{ startTime: string; endTime: string; descriptionParts: string[] }> = []
 
-  for (const rawLine of section.split('\n')) {
+  for (const rawLine of cleanSection.split('\n')) {
     const line = rawLine
       .replace(/\b(?:HORA\s+DE\s+IN[IÍ]CIO|HORA\s+DE\s+T[ÉE]RMINO|DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL)\b/gi, ' ')
       .replace(/\s+/g, ' ')
@@ -90,30 +87,51 @@ function extractActivityDetails(text: string) {
     if (currentRow) currentRow.descriptionParts.push(line)
   }
 
-  let rows = activityRows
+  const rows = activityRows
     .map((row) => {
       const description = row.descriptionParts.join(' ').replace(/\s+/g, ' ').trim()
       return description ? `[${row.startTime} - ${row.endTime}] ${description}` : ''
     })
     .filter(Boolean)
 
+  if (rows.length > 0) return rows
+
+  const inlineRowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
+  return Array.from(cleanSection.matchAll(inlineRowPattern)).flatMap((match) => {
+    const description = match[3].replace(/\s+/g, ' ').trim()
+    return description ? [`[${match[1].padStart(5, '0')} - ${match[2].padStart(5, '0')}] ${description}`] : []
+  })
+}
+
+function extractActivityDetails(text: string) {
+  const sectionPattern = /(?:HORA\s+DE\s+IN[IÍ]CIO[\s\S]{0,160}?HORA\s+DE\s+T[ÉE]RMINO[\s\S]{0,220}?)?DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]*?)(?=\n?\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Fotos|Anexos|(?:Data\s*OS|Data)\b)\b|$)/gi
+  const sections = Array.from(text.matchAll(sectionPattern)).map((match) => match[1])
+  const rows = sections.flatMap((section) => parseActivitySection(section))
+
   if (rows.length === 0) {
     const inlineRowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
-    rows = Array.from(section.matchAll(inlineRowPattern)).flatMap((match) => {
+    const inlineRows = Array.from(text.matchAll(inlineRowPattern)).flatMap((match) => {
       const description = match[3].replace(/\s+/g, ' ').trim()
       return description ? [`[${match[1].padStart(5, '0')} - ${match[2].padStart(5, '0')}] ${description}`] : []
     })
+    if (inlineRows.length > 0) return inlineRows.join('\n\n')
   }
 
   if (rows.length > 0) return rows.join('\n\n')
-  return section.replace(/\s+/g, ' ').trim() || undefined
+  return sections.join(' ').replace(/\s+/g, ' ').trim() || undefined
 }
 
 function extractDateChunks(text: string) {
-  const datePattern = /\b(?:Data\s*OS|Data)\b[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
-  const matches = Array.from(text.matchAll(datePattern))
+  const sameLinePattern = /(?:^|\n)\s*(?:Data\s*OS|Data)\s*[:-]?\s*(\d{2}\/\d{2}\/\d{4})/gi
+  let matches = Array.from(text.matchAll(sameLinePattern))
     .map((match) => ({ rawDate: match[1], isoDate: toIsoDate(match[1]), index: match.index ?? 0 }))
     .filter((match): match is { rawDate: string; isoDate: string; index: number } => Boolean(match.isoDate))
+  if (matches.length === 0) {
+    const loosePattern = /\b(?:Data\s*OS|Data)\b[^\n]{0,80}?(\d{2}\/\d{2}\/\d{4})/gi
+    matches = Array.from(text.matchAll(loosePattern))
+      .map((match) => ({ rawDate: match[1], isoDate: toIsoDate(match[1]), index: match.index ?? 0 }))
+      .filter((match): match is { rawDate: string; isoDate: string; index: number } => Boolean(match.isoDate))
+  }
 
   if (matches.length === 0) return [{ isoDate: undefined, chunk: text }]
 
