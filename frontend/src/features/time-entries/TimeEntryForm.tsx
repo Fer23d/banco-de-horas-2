@@ -1,14 +1,17 @@
 import { useEffect, useRef, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { getCorporateToday } from '../../shared/utils/date'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { getCorporateToday, isIsoDate } from '../../shared/utils/date'
 import { FieldError, fieldClassName, TimeEntryFields } from './TimeEntryFields'
 import { useTimeEntryForm } from './useTimeEntryForm'
 
 export function TimeEntryForm({ entryId }: { entryId?: string }) {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const formRef = useRef<HTMLFormElement>(null)
+  const navigationState = location.state as { initialDate?: string; selectedDate?: string } | null
+  const routedInitialDate = searchParams.get('date') ?? navigationState?.initialDate ?? navigationState?.selectedDate
   const controller = useTimeEntryForm({
-    initialDate: searchParams.get('date') ?? getCorporateToday(),
+    initialDate: routedInitialDate && isIsoDate(routedInitialDate) ? routedInitialDate : getCorporateToday(),
     entryId,
     duplicateId: entryId ? undefined : searchParams.get('duplicate') ?? undefined,
   })

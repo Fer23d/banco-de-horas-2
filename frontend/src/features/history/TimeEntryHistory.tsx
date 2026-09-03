@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { isIsoDate } from '../../shared/utils/date'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { demoActivities, demoClients } from '../../mocks/demoData'
 import { formatDatePtBr } from '../../shared/utils/date'
@@ -23,7 +24,11 @@ const activityOptions = [
 ]
 
 export function TimeEntryHistory() {
-  const history = useTimeEntryHistory()
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const navigationState = location.state as { historyDate?: string; selectedDate?: string } | null
+  const routedDate = searchParams.get('date') ?? navigationState?.historyDate ?? navigationState?.selectedDate
+  const history = useTimeEntryHistory(routedDate && isIsoDate(routedDate) ? routedDate : undefined)
   const [cancelTarget, setCancelTarget] = useState<HistoryRow | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)

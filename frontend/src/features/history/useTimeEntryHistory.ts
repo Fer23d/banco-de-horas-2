@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { dayApprovalService } from '../../services/dayApprovalService'
 import { timeEntryService } from '../../services/timeEntryService'
 import type { DayApproval } from '../approvals/types'
@@ -46,9 +46,20 @@ export type HistoryRow = {
 }
 
 const today = getCorporateToday()
-const initialFilters: HistoryFiltersValue = {
-  mode: 'MONTH', day: today, month: getMonthKey(today), startDate: `${getMonthKey(today)}-01`, endDate: today,
-  clientId: '', projectCode: '', activityId: '', disciplineCode: '', status: 'ACTIVE',
+function createInitialFilters(focusDate?: string): HistoryFiltersValue {
+  const baseDate = focusDate ?? today
+  return {
+    mode: focusDate ? 'DAY' : 'MONTH',
+    day: baseDate,
+    month: getMonthKey(baseDate),
+    startDate: focusDate ?? `${getMonthKey(today)}-01`,
+    endDate: focusDate ?? today,
+    clientId: '',
+    projectCode: '',
+    activityId: '',
+    disciplineCode: '',
+    status: 'ACTIVE',
+  }
 }
 
 function holidaysToEvents(collaboratorId: string, holidays: Awaited<ReturnType<typeof holidayProvider.list>>): CalendarEvent[] {
@@ -58,8 +69,9 @@ function holidaysToEvents(collaboratorId: string, holidays: Awaited<ReturnType<t
   }))
 }
 
-export function useTimeEntryHistory() {
+export function useTimeEntryHistory(focusDate?: string) {
   const { profile } = useSession()
+  const initialFilters = useMemo(() => createInitialFilters(focusDate), [focusDate])
   const [draftFilters, setDraftFilters] = useState(initialFilters)
   const [filters, setFilters] = useState(initialFilters)
   const [rows, setRows] = useState<HistoryRow[]>([])
@@ -73,6 +85,14 @@ export function useTimeEntryHistory() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    const pagination = getInitialHistoryPagination()
+    setDraftFilters(initialFilters)
+    setFilters(initialFilters)
+    setCursor(pagination.cursor)
+    setCursorHistory(pagination.cursorHistory)
+  }, [initialFilters])
 
   const load = useCallback(async () => {
     if (!profile) return

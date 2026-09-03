@@ -11,6 +11,7 @@ type MonthlyCalendarProps = {
   days: DailySummary[]
   onMonthChange: (monthKey: string) => void
   onSelectDate: (date: string) => void
+  onOpenDate?: (date: string, hasEntries: boolean) => void
 }
 
 const weekdayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -21,7 +22,7 @@ function monthLabel(monthKey: string) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, onSelectDate }: MonthlyCalendarProps) {
+export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, onSelectDate, onOpenDate }: MonthlyCalendarProps) {
   const summaries = new Map(days.map((day) => [day.date, day]))
   const gridCells = getMonthGridCells(monthKey)
 
@@ -49,6 +50,7 @@ export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, o
           const presentation = calendarStatePresentation[state]
           const worked = formatMinutes(summary?.workedMinutes ?? 0)
           const expected = formatMinutes(summary?.expectedMinutes ?? 0)
+          const hasEntries = (summary?.workedMinutes ?? 0) > 0
           const ariaLabel = `${formatDatePtBr(date)}: ${presentation.label}; ${worked} apontadas de ${expected} previstas`
           return (
             <button
@@ -57,6 +59,7 @@ export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, o
               data-calendar-day={date}
               data-calendar-state={state}
               onClick={() => onSelectDate(date)}
+              onDoubleClick={() => onOpenDate?.(date, hasEntries)}
               aria-label={ariaLabel}
               aria-pressed={selectedDate === date}
               title={ariaLabel}
