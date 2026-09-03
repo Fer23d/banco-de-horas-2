@@ -1,5 +1,7 @@
+import { useState, type ChangeEvent } from 'react'
 import { demoClients } from '../../mocks/demoData'
 import { activityOptionsByWorkContext } from './domain'
+import { parseRDO } from './rdoParser'
 import type { TimeEntryValidationErrors } from './types'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
@@ -28,12 +30,53 @@ const documentTypes = [
 ] as const
 
 export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, onChange }: TimeEntryFieldsProps) {
+  const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
+  const [rdoMessage, setRdoMessage] = useState<string | null>(null)
   const activityOptions = values.emObra ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
 
   function handleWorkContextChange(emObra: boolean) {
     onChange('emObra', emObra)
     onChange('activityId', '')
     if (!emObra) onChange('numeroObra', '')
+    setRdoStatus('idle')
+    setRdoMessage(null)
+  }
+
+  async function handleRDOImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setRdoStatus('reading')
+    setRdoMessage('Lendo PDF localmente...')
+    try {
+      const parsed = await parseRDO(file)
+      let appliedFields = 0
+      if (parsed.numeroObra) {
+        onChange('numeroObra', parsed.numeroObra)
+        appliedFields += 1
+      }
+      if (parsed.dataApontamento) {
+        onChange('startDate', parsed.dataApontamento)
+        onChange('endDate', parsed.dataApontamento)
+        appliedFields += 1
+      }
+      if (parsed.horas !== undefined && parsed.minutos !== undefined) {
+        onChange('hours', parsed.horas)
+        onChange('minutes', parsed.minutos)
+        appliedFields += 1
+      }
+      if (parsed.detalhes) {
+        onChange('details', parsed.detalhes)
+        appliedFields += 1
+      }
+      setRdoStatus(appliedFields > 0 ? 'success' : 'error')
+      setRdoMessage(appliedFields > 0
+        ? 'RDO lido com sucesso. Revise os campos antes de salvar.'
+        : 'Não foi possível identificar dados compatíveis nesse RDO.')
+    } catch (error) {
+      setRdoStatus('error')
+      setRdoMessage(error instanceof Error ? error.message : 'Não foi possível ler o PDF informado.')
+    }
   }
 
   return (
@@ -74,11 +117,23 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
       </fieldset>
 
       {values.emObra && (
-        <div className="md:col-span-2">
-          <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra</label>
-          <input id="work-site-number" name="numeroObra" type="text" value={values.numeroObra} onChange={(event) => onChange('numeroObra', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.numeroObra)} aria-describedby={errors.numeroObra ? 'work-site-number-error' : undefined} />
-          <FieldError id="work-site-number-error" message={errors.numeroObra} />
-        </div>
+        <>
+          <div className="md:col-span-2 rounded-2xl border ui-border ui-surface-subtle p-4">
+            <label htmlFor="rdo-upload" className="text-sm font-bold ui-text">Importar arquivo RDO para preenchimento automático</label>
+            <input id="rdo-upload" name="rdoUpload" type="file" accept=".pdf,application/pdf" onChange={(event) => void handleRDOImport(event)} disabled={rdoStatus === 'reading'} className={`${fieldClassName} file:mr-4 file:rounded-lg file:border-0 file:bg-[var(--color-primary)] file:px-3 file:py-2 file:text-sm file:font-bold file:text-[#06241f] disabled:opacity-60`} />
+            <p className="mt-2 text-xs ui-text-subtle">O PDF é lido apenas no navegador para preencher os campos. O arquivo não é salvo nem enviado.</p>
+            {rdoMessage && (
+              <p className={`mt-2 text-sm font-semibold ${rdoStatus === 'error' ? 'text-red-700 dark:text-red-300' : 'text-[var(--color-primary)]'}`} role={rdoStatus === 'error' ? 'alert' : 'status'}>
+                {rdoMessage}
+              </p>
+            )}
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra</label>
+            <input id="work-site-number" name="numeroObra" type="text" value={values.numeroObra} onChange={(event) => onChange('numeroObra', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.numeroObra)} aria-describedby={errors.numeroObra ? 'work-site-number-error' : undefined} />
+            <FieldError id="work-site-number-error" message={errors.numeroObra} />
+          </div>
+        </>
       )}
 
       <div>
