@@ -7,9 +7,13 @@ describe('parser de RDO em PDF', () => {
       Nº do QQP
       Obra 25M020E
       Data OS 28/07/2026
+      HORA DE INÍCIO
+      HORA DE TÉRMINO
       DESCRIÇÃO DA ATIVIDADE E DO LOCAL
       07:30 12:30 Deslocamento até a obra, reunião de segurança.
+      Organização das ferramentas, EPIs e alinhamento com a equipe local.
       13:30 17:30 Levantamento de campo na área industrial.
+      Registro fotográfico e conferência dos pontos de interferência.
       Total de Horas 9.0
       Assinatura do responsável
     `)
@@ -19,7 +23,7 @@ describe('parser de RDO em PDF', () => {
       dataApontamento: '2026-07-28',
       horas: '9',
       minutos: '0',
-      detalhes: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança.\n\n[13:30 - 17:30] Levantamento de campo na área industrial.',
+      detalhes: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança. Organização das ferramentas, EPIs e alinhamento com a equipe local.\n\n[13:30 - 17:30] Levantamento de campo na área industrial. Registro fotográfico e conferência dos pontos de interferência.',
     })
   })
 

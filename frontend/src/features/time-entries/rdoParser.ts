@@ -38,7 +38,7 @@ function extractTotalHours(text: string) {
 
 function extractActivityDetails(text: string) {
   const sectionMatch = text.match(
-    /(?:HORA\s+DE\s+IN[IÍ]CIO[\s\S]{0,160}?HORA\s+DE\s+T[ÉE]RMINO[\s\S]{0,220}?)?DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,2400}?)(?=\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i,
+    /(?:HORA\s+DE\s+IN[IÍ]CIO[\s\S]{0,160}?HORA\s+DE\s+T[ÉE]RMINO[\s\S]{0,220}?)?DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]*?)(?=\n?\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Fotos|Anexos)\b|$)/i,
   )
   const section = sectionMatch?.[1]
     ?.replace(/\bHORA\s+DE\s+IN[IÍ]CIO\b/gi, ' ')
@@ -46,18 +46,46 @@ function extractActivityDetails(text: string) {
     .replace(/\bDESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\b/gi, ' ')
   if (!section) return undefined
 
-  const rowPattern = /(?:^|\n)\s*(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\n\s*\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\n?\s*Total\s+(?:de\s+)?Horas\b|$)/gi
-  const inlineRowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
-  const matches = Array.from(section.matchAll(rowPattern))
-  const rows = (matches.length > 0 ? matches : Array.from(section.matchAll(inlineRowPattern))).flatMap((match) => {
-    const startTime = match[1].padStart(5, '0')
-    const endTime = match[2].padStart(5, '0')
-    const description = match[3]
+  const timeRowPattern = /^\s*(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s*(.*)$/i
+  const stopPattern = /\b(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Fotos|Anexos)\b/i
+  const activityRows: Array<{ startTime: string; endTime: string; descriptionParts: string[] }> = []
+
+  for (const rawLine of section.split('\n')) {
+    const line = rawLine
       .replace(/\b(?:HORA\s+DE\s+IN[IÍ]CIO|HORA\s+DE\s+T[ÉE]RMINO|DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL)\b/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim()
-    return description ? [`[${startTime} - ${endTime}] ${description}`] : []
-  })
+    if (!line) continue
+    if (stopPattern.test(line)) break
+
+    const rowMatch = line.match(timeRowPattern)
+    if (rowMatch) {
+      activityRows.push({
+        startTime: rowMatch[1].padStart(5, '0'),
+        endTime: rowMatch[2].padStart(5, '0'),
+        descriptionParts: rowMatch[3]?.trim() ? [rowMatch[3].trim()] : [],
+      })
+      continue
+    }
+
+    const currentRow = activityRows.at(-1)
+    if (currentRow) currentRow.descriptionParts.push(line)
+  }
+
+  let rows = activityRows
+    .map((row) => {
+      const description = row.descriptionParts.join(' ').replace(/\s+/g, ' ').trim()
+      return description ? `[${row.startTime} - ${row.endTime}] ${description}` : ''
+    })
+    .filter(Boolean)
+
+  if (rows.length === 0) {
+    const inlineRowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
+    rows = Array.from(section.matchAll(inlineRowPattern)).flatMap((match) => {
+      const description = match[3].replace(/\s+/g, ' ').trim()
+      return description ? [`[${match[1].padStart(5, '0')} - ${match[2].padStart(5, '0')}] ${description}`] : []
+    })
+  }
 
   if (rows.length > 0) return rows.join('\n\n')
   return section.replace(/\s+/g, ' ').trim() || undefined
