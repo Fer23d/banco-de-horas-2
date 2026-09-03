@@ -58,9 +58,8 @@ describe('validações e formatação', () => {
     entryDate: monday,
     clientId: 'client-industrial-alpha',
     projectCode: 'Ab-001/2.03',
-    activityId: 'activity-project-design',
-    disciplineCode: '—',
-    documentTypeCode: '—',
+    activityId: 'corporate-training-event',
+    disciplineCode: 'C',
     durationMinutes: 60,
     details: 'Atividade corporativa',
   } as CreateTimeEntryData
@@ -109,18 +108,11 @@ describe('validações e formatação', () => {
     expect(reopened.entryDate).toBeUndefined()
   })
 
-  it('exige seleção explícita de disciplina e aceita não se aplica', () => {
-    const missing = validateTimeEntry({ ...validData, disciplineCode: '' as '—' }, demoClients, demoActivities)
-    const notApplicable = validateTimeEntry({ ...validData, disciplineCode: '—' }, demoClients, demoActivities)
-    expect(missing.disciplineCode).toBe('Selecione uma disciplina.')
-    expect(notApplicable.disciplineCode).toBeUndefined()
-  })
-
-  it('exige seleção explícita de tipo de documento e aceita não se aplica', () => {
-    const missing = validateTimeEntry({ ...validData, documentTypeCode: '' as '—' }, demoClients, demoActivities)
-    const notApplicable = validateTimeEntry({ ...validData, documentTypeCode: '—' }, demoClients, demoActivities)
-    expect(missing.documentTypeCode).toBe('Selecione um tipo de documento.')
-    expect(notApplicable.documentTypeCode).toBeUndefined()
+  it('mantém disciplina fixa em campo', () => {
+    const invalid = validateTimeEntry({ ...validData, disciplineCode: 'A' as never }, demoClients, demoActivities)
+    const field = validateTimeEntry({ ...validData, disciplineCode: 'C' }, demoClients, demoActivities)
+    expect(invalid.disciplineCode).toBe('A disciplina deve permanecer como C – Campo.')
+    expect(field.disciplineCode).toBeUndefined()
   })
 
   it('exige detalhamento não vazio', () => {

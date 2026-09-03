@@ -8,7 +8,6 @@ import type {
 export type {
   CreateTimeEntryData,
   DisciplineCode,
-  DocumentTypeCode,
   TimeEntry,
   TimeEntryStatus,
   TimeEntryValidationErrors,

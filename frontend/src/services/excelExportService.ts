@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver'
 import { demoActivities, demoClients, demoCollaborator } from '../mocks/demoData'
 import type { DEPGerencia, DEPSquad } from '../data/mockDEP'
 import type { CollaboratorProfile } from '../features/profile/types'
-import { formatMinutes } from '../features/time-entries/domain'
+import { activityOptionsByWorkContext, formatMinutes } from '../features/time-entries/domain'
 import type { TimeEntry } from '../features/time-entries/types'
 import { normalizeTimeEntry, type TimeEntryStorageV3 } from './timeEntryMigration'
 import { TIME_ENTRY_STORAGE_KEY } from './timeEntryService'
@@ -118,7 +118,12 @@ function resolveClientName(clientId: string) {
 }
 
 function resolveActivityName(activityId: string) {
-  return demoActivities.find((activity) => activity.id === activityId)?.name ?? activityId
+  const activityOptions = [
+    ...activityOptionsByWorkContext.field,
+    ...activityOptionsByWorkContext.corporate,
+    ...demoActivities,
+  ]
+  return activityOptions.find((activity) => activity.id === activityId)?.name ?? activityId
 }
 
 function resolveCollaboratorMeta(entry: TimeEntry, storage: StorageLike = createBrowserStorage()): CollaboratorMeta {

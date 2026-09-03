@@ -1,26 +1,7 @@
 import type { AssignmentSnapshot } from '../squads/types'
 
 export type TimeEntryStatus = 'ACTIVE' | 'CANCELLED'
-export type DisciplineCode = '—' | 'A' | 'E'
-export type DocumentTypeCode =
-  | '—'
-  | 'RN'
-  | 'GR'
-  | 'G'
-  | 'FD'
-  | 'DE'
-  | 'LM'
-  | 'DI'
-  | 'LC'
-  | 'LI'
-  | 'ET'
-  | 'MC'
-  | 'MO'
-  | 'MD'
-  | 'FG'
-  | 'LA'
-  | 'ES'
-  | 'CF'
+export type DisciplineCode = 'C'
 
 export interface TimeEntry {
   id: string
@@ -32,7 +13,6 @@ export interface TimeEntry {
   projectCode: string
   activityId: string
   disciplineCode: DisciplineCode
-  documentTypeCode: DocumentTypeCode
   durationMinutes: number
   details: string
   assignmentSnapshot: AssignmentSnapshot | null
@@ -53,7 +33,6 @@ export type CreateTimeEntryData = Pick<
   | 'projectCode'
   | 'activityId'
   | 'disciplineCode'
-  | 'documentTypeCode'
   | 'durationMinutes'
   | 'details'
 > & {

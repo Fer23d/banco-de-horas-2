@@ -1,6 +1,6 @@
 import { MAX_ENTRY_MINUTES, MAX_PROJECT_CODE_LENGTH } from '../config/business'
 import type { AssignmentSnapshot } from '../features/squads/types'
-import type { DisciplineCode, DocumentTypeCode, TimeEntry } from '../features/time-entries/types'
+import type { DisciplineCode, TimeEntry } from '../features/time-entries/types'
 import { isIsoDate } from '../shared/utils/date'
 
 export const LEGACY_V1_TIME_ENTRY_STORAGE_KEY = 'sma:time-entries:v1'
@@ -21,7 +21,7 @@ const safeLegacyAssignmentByCollaboratorId: Readonly<Record<string, AssignmentSn
   },
 }
 
-type V2TimeEntry = Omit<TimeEntry, 'disciplineCode' | 'documentTypeCode' | 'assignmentSnapshot' | 'emObra' | 'numeroObra'> & {
+type V2TimeEntry = Omit<TimeEntry, 'disciplineCode' | 'assignmentSnapshot' | 'emObra' | 'numeroObra'> & {
   disciplineCode?: unknown
   documentTypeCode?: unknown
   assignmentSnapshot?: unknown
@@ -53,10 +53,7 @@ export type V1TimeEntryMigrationResult = {
   skippedCount: number
 }
 
-const disciplineCodes: readonly DisciplineCode[] = ['—', 'A', 'E']
-const documentTypeCodes: readonly DocumentTypeCode[] = [
-  '—', 'RN', 'GR', 'G', 'FD', 'DE', 'LM', 'DI', 'LC', 'LI', 'ET', 'MC', 'MO', 'MD', 'FG', 'LA', 'ES', 'CF',
-]
+const disciplineCodes: readonly DisciplineCode[] = ['C']
 
 function isAssignmentSnapshot(value: unknown): value is AssignmentSnapshot {
   if (!value || typeof value !== 'object') return false
@@ -104,12 +101,7 @@ function migrateV2Entry(entry: V2TimeEntry, collaboratorId: string): TimeEntry |
     clientId: entry.clientId,
     projectCode: entry.projectCode.trim(),
     activityId: entry.activityId,
-    disciplineCode: disciplineCodes.includes(entry.disciplineCode as DisciplineCode)
-      ? entry.disciplineCode as DisciplineCode
-      : '—',
-    documentTypeCode: documentTypeCodes.includes(entry.documentTypeCode as DocumentTypeCode)
-      ? entry.documentTypeCode as DocumentTypeCode
-      : '—',
+    disciplineCode: 'C',
     durationMinutes: entry.durationMinutes,
     details: entry.details.trim(),
     assignmentSnapshot: safeLegacyAssignmentByCollaboratorId[collaboratorId] ?? null,
@@ -138,8 +130,7 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
     || entry.projectCode !== entry.projectCode.trim()
     || entry.projectCode.length > MAX_PROJECT_CODE_LENGTH
     || typeof entry.activityId !== 'string'
-    || !disciplineCodes.includes(entry.disciplineCode as DisciplineCode)
-    || !documentTypeCodes.includes(entry.documentTypeCode as DocumentTypeCode)
+    || (typeof entry.disciplineCode !== 'undefined' && !disciplineCodes.includes(entry.disciplineCode as DisciplineCode) && entry.disciplineCode !== '—' && entry.disciplineCode !== 'A' && entry.disciplineCode !== 'E')
     || !Number.isInteger(entry.durationMinutes)
     || Number(entry.durationMinutes) <= 0
     || Number(entry.durationMinutes) > MAX_ENTRY_MINUTES
@@ -160,8 +151,7 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
     clientId: entry.clientId,
     projectCode: entry.projectCode,
     activityId: entry.activityId,
-    disciplineCode: entry.disciplineCode as DisciplineCode,
-    documentTypeCode: entry.documentTypeCode as DocumentTypeCode,
+    disciplineCode: 'C',
     durationMinutes: Number(entry.durationMinutes),
     details: entry.details.trim(),
     assignmentSnapshot: entry.assignmentSnapshot as AssignmentSnapshot | null,

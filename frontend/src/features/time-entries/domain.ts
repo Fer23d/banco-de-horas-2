@@ -89,10 +89,7 @@ export function validateTimeEntry(
       : 'Selecione uma atividade corporativa.'
   }
   if (data.emObra && !data.numeroObra?.trim()) errors.numeroObra = 'Informe o número da obra.'
-  if (!['—', 'A', 'E'].includes(data.disciplineCode)) errors.disciplineCode = 'Selecione uma disciplina.'
-  if (!['—', 'RN', 'GR', 'G', 'FD', 'DE', 'LM', 'DI', 'LC', 'LI', 'ET', 'MC', 'MO', 'MD', 'FG', 'LA', 'ES', 'CF'].includes(data.documentTypeCode)) {
-    errors.documentTypeCode = 'Selecione um tipo de documento.'
-  }
+  if (data.disciplineCode !== 'C') errors.disciplineCode = 'A disciplina deve permanecer como C – Campo.'
   if (!isValidDuration(data.durationMinutes)) errors.durationMinutes = 'A duração deve ser maior que zero e de no máximo 24 horas.'
   if (!data.details.trim()) errors.details = 'Descreva o trabalho realizado.'
   return errors

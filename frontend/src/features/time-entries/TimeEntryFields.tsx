@@ -20,15 +20,6 @@ type TimeEntryFieldsProps = {
   onChange: <Key extends keyof TimeEntryFormValues>(field: Key, value: TimeEntryFormValues[Key]) => void
 }
 
-const documentTypes = [
-  ['—', '— — Não se aplica'], ['RN', 'RN — Reunião'], ['GR', 'GR — Gerenciamento'], ['G', 'G — Geral'],
-  ['FD', 'FD — Folha de Dados'], ['DE', 'DE — Desenho'], ['LM', 'LM — Lista de Material'], ['DI', 'DI — Diagrama'],
-  ['LC', 'LC — Lista de Cabos'], ['LI', 'LI — Lista de Instrumentos'], ['ET', 'ET — Especificação Técnica'],
-  ['MC', 'MC — Memória de Cálculo'], ['MO', 'MO — Modelo 3D'], ['MD', 'MD — Memorial Descritivo'],
-  ['FG', 'FG — Fluxograma'], ['LA', 'LA — Lista de Cargas'], ['ES', 'ES — Relação de Entradas e Saídas'],
-  ['CF', 'CF — Arquitetura de Rede'],
-] as const
-
 export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, onChange }: TimeEntryFieldsProps) {
   const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
   const [rdoMessage, setRdoMessage] = useState<string | null>(null)
@@ -163,22 +154,9 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
 
       <div>
         <label htmlFor="discipline" className="text-sm font-bold ui-text">Disciplina</label>
-        <select id="discipline" name="disciplineCode" value={values.disciplineCode} onChange={(event) => onChange('disciplineCode', event.target.value as TimeEntryFormValues['disciplineCode'])} className={fieldClassName} aria-invalid={Boolean(errors.disciplineCode)} aria-describedby={errors.disciplineCode ? 'discipline-error' : undefined}>
-          <option value="">Selecione uma disciplina</option>
-          <option value="—">— — Não se aplica</option>
-          <option value="A">A — Automação</option>
-          <option value="E">E — Elétrica</option>
-        </select>
+        <input id="discipline" name="disciplineCode" type="text" value="C – Campo" readOnly className={`${fieldClassName} font-semibold`} aria-invalid={Boolean(errors.disciplineCode)} aria-describedby={errors.disciplineCode ? 'discipline-error' : 'discipline-help'} />
+        <p id="discipline-help" className="mt-1.5 text-xs ui-text-subtle">Valor fixo para apontamentos do Banco de Horas 2.</p>
         <FieldError id="discipline-error" message={errors.disciplineCode} />
-      </div>
-
-      <div>
-        <label htmlFor="document-type" className="text-sm font-bold ui-text">Tipo de documento</label>
-        <select id="document-type" name="documentTypeCode" value={values.documentTypeCode} onChange={(event) => onChange('documentTypeCode', event.target.value as TimeEntryFormValues['documentTypeCode'])} className={fieldClassName} aria-invalid={Boolean(errors.documentTypeCode)} aria-describedby={errors.documentTypeCode ? 'document-type-error' : undefined}>
-          <option value="">Selecione um tipo</option>
-          {documentTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <FieldError id="document-type-error" message={errors.documentTypeCode} />
       </div>
     </div>
   )

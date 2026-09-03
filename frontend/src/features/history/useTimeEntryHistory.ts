@@ -3,7 +3,7 @@ import { dayApprovalService } from '../../services/dayApprovalService'
 import { timeEntryService } from '../../services/timeEntryService'
 import type { DayApproval } from '../approvals/types'
 import { isDayApprovalApplicable } from '../approvals/domain'
-import type { DisciplineCode, DocumentTypeCode, TimeEntry } from '../time-entries/types'
+import type { DisciplineCode, TimeEntry } from '../time-entries/types'
 import { getCorporateToday, getMonthKey } from '../../shared/utils/date'
 import { useSession } from '../session/useSession'
 import {
@@ -33,7 +33,6 @@ export type HistoryFiltersValue = {
   projectCode: string
   activityId: string
   disciplineCode: DisciplineCode | ''
-  documentTypeCode: DocumentTypeCode | ''
   status: EntrySituationFilter
 }
 
@@ -49,7 +48,7 @@ export type HistoryRow = {
 const today = getCorporateToday()
 const initialFilters: HistoryFiltersValue = {
   mode: 'MONTH', day: today, month: getMonthKey(today), startDate: `${getMonthKey(today)}-01`, endDate: today,
-  clientId: '', projectCode: '', activityId: '', disciplineCode: '', documentTypeCode: '', status: 'ACTIVE',
+  clientId: '', projectCode: '', activityId: '', disciplineCode: '', status: 'ACTIVE',
 }
 
 function holidaysToEvents(collaboratorId: string, holidays: Awaited<ReturnType<typeof holidayProvider.list>>): CalendarEvent[] {
@@ -97,7 +96,6 @@ export function useTimeEntryHistory() {
           projectCode: filters.projectCode.trim() || undefined,
           activityId: filters.activityId || undefined,
           disciplineCode: filters.disciplineCode || undefined,
-          documentTypeCode: filters.documentTypeCode || undefined,
           status: toServiceStatusFilter(filters.status),
         },
         }),

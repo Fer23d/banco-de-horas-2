@@ -13,7 +13,7 @@ class MemoryStorage implements StorageLike {
 
 const entryData = {
   entryDate: '2026-07-20', clientId: 'client-industrial-alpha', projectCode: 'SMA-001',
-  activityId: 'activity-project-design', disciplineCode: '—' as const, documentTypeCode: '—' as const,
+  activityId: 'corporate-training-event', disciplineCode: 'C' as const,
   durationMinutes: 60, details: 'Atividade executada',
 }
 

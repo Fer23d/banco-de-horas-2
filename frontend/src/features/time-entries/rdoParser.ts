@@ -35,6 +35,27 @@ function extractTotalHours(text: string) {
   return totalHoursMatch?.[1]
 }
 
+function extractActivityDetails(text: string) {
+  const sectionMatch = text.match(
+    /DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,1800}?)(?=\s*(?:Total\s+(?:de\s+)?Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i,
+  )
+  const section = sectionMatch?.[1]
+  if (!section) return undefined
+
+  const rowPattern = /(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+([\s\S]*?)(?=\s+\d{1,2}:\d{2}\s+\d{1,2}:\d{2}\s+|\s+Total\s+(?:de\s+)?Horas\b|$)/gi
+  const rows = Array.from(section.matchAll(rowPattern)).flatMap((match) => {
+    const startTime = match[1].padStart(5, '0')
+    const endTime = match[2].padStart(5, '0')
+    const description = match[3]
+      .replace(/\s+/g, ' ')
+      .trim()
+    return description ? [`[${startTime} - ${endTime}] ${description}`] : []
+  })
+
+  if (rows.length > 0) return rows.join('\n\n')
+  return section.replace(/\s+/g, ' ').trim() || undefined
+}
+
 export function parseRDOText(text: string): ParsedRDO {
   const normalizedText = text
     .replace(/\u00a0/g, ' ')
@@ -46,12 +67,7 @@ export function parseRDOText(text: string): ParsedRDO {
   const dateMatch = normalizedText.match(/(?:Data\s*OS|Data)[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/i)
     ?? normalizedText.match(/\b(\d{2}\/\d{2}\/\d{4})\b/)
   const totalHours = extractTotalHours(normalizedText)
-  const detailsMatch = normalizedText.match(/DESCRI[ÇC][ÃA]O\s+DA\s+ATIVIDADE\s+E\s+DO\s+LOCAL\s*([\s\S]{20,1200}?)(?=\n\s*(?:Total\s+de\s+Horas|Assinatura|Respons[aá]vel|Observa[çc][õo]es|Fotos|Anexos)\b|$)/i)
-
-  const details = detailsMatch?.[1]
-    ?.replace(/\n+/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+  const details = extractActivityDetails(normalizedText)
 
   return {
     numeroObra: obraMatch?.[1]?.trim(),

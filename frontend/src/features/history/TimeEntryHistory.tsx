@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { demoActivities, demoClients } from '../../mocks/demoData'
 import { formatDatePtBr } from '../../shared/utils/date'
-import { formatMinutes } from '../time-entries/domain'
+import { activityOptionsByWorkContext, formatMinutes } from '../time-entries/domain'
 import type { HistoryRow } from './useTimeEntryHistory'
 import { useTimeEntryHistory } from './useTimeEntryHistory'
 import { HistoryFilters } from './HistoryFilters'
@@ -15,6 +15,12 @@ import { getHistoryEntryActions } from './entryActions'
 import { EntryRevisionBadge, EntryRevisionDetails } from '../time-entries/EntryRevisionBadge'
 import { StatusBadge } from '../../components/StatusBadge'
 import { approvalStatusPresentation, nonApplicableApprovalPresentation, timeEntryStatusPresentation } from '../status/presentation'
+
+const activityOptions = [
+  ...activityOptionsByWorkContext.field,
+  ...activityOptionsByWorkContext.corporate,
+  ...demoActivities,
+]
 
 export function TimeEntryHistory() {
   const history = useTimeEntryHistory()
@@ -49,7 +55,7 @@ export function TimeEntryHistory() {
             const { entry, approval } = row
             const approvalPresentation = approval ? approvalStatusPresentation[approval.status] : nonApplicableApprovalPresentation
             const client = demoClients.find((item) => item.id === entry.clientId)?.name ?? 'Cliente não disponível'
-            const activity = demoActivities.find((item) => item.id === entry.activityId)?.name ?? 'Atividade não disponível'
+            const activity = activityOptions.find((item) => item.id === entry.activityId)?.name ?? 'Atividade não disponível'
             const actions = getHistoryEntryActions({
               entryStatus: entry.status,
               approvalStatus: approval?.status ?? null,
@@ -68,8 +74,8 @@ export function TimeEntryHistory() {
                     </div>
                     <p className="mt-2 text-sm ui-text-subtle">{client} · {activity} · {formatMinutes(entry.durationMinutes)}</p>
                     <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                      <div><dt className="font-bold ui-text-subtle">Disciplina</dt><dd>{entry.disciplineCode}</dd></div>
-                      <div><dt className="font-bold ui-text-subtle">Tipo de documento</dt><dd>{entry.documentTypeCode}</dd></div>
+                      <div><dt className="font-bold ui-text-subtle">Disciplina</dt><dd>{entry.disciplineCode === 'C' ? 'C – Campo' : entry.disciplineCode}</dd></div>
+                      {entry.numeroObra && <div><dt className="font-bold ui-text-subtle">Número da obra</dt><dd>{entry.numeroObra}</dd></div>}
                       <div><dt className="font-bold ui-text-subtle">Squad registrada</dt><dd>{entry.assignmentSnapshot?.squadName ?? 'Não disponível (legado)'}</dd></div>
                       <div><dt className="font-bold ui-text-subtle">Supervisor registrado</dt><dd>{entry.assignmentSnapshot?.supervisorName ?? 'Não disponível (legado)'}</dd></div>
                       <div><dt className="font-bold ui-text-subtle">Situação da jornada</dt><dd>{getCalendarVisualState(row.summary).label}</dd></div>

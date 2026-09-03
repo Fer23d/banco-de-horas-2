@@ -50,9 +50,8 @@ const validData: CreateTimeEntryData = {
   entryDate: '2026-07-13',
   clientId: 'client-industrial-alpha',
   projectCode: 'Ab-001/2.03',
-  activityId: 'activity-project-design',
-  disciplineCode: '—',
-  documentTypeCode: '—',
+  activityId: 'corporate-training-event',
+  disciplineCode: 'C',
   durationMinutes: 60,
   details: 'Teste de persistência',
 }
@@ -89,8 +88,7 @@ function v1Entry(overrides: Record<string, unknown> = {}) {
 function v3Entry(overrides: Record<string, unknown> = {}) {
   return {
     ...v2Entry(),
-    disciplineCode: '—',
-    documentTypeCode: '—',
+    disciplineCode: 'C',
     assignmentSnapshot: assignment,
     ...overrides,
   }
@@ -198,10 +196,10 @@ describe('migração segura de apontamentos v2 para v3', () => {
     expect(migrated).toMatchObject({
       id: 'legacy-v2-entry-1',
       projectCode: 'LEG-001',
-      disciplineCode: '—',
-      documentTypeCode: '—',
+      disciplineCode: 'C',
       assignmentSnapshot: assignment,
     })
+    expect(migrated).not.toHaveProperty('documentTypeCode')
     expect(migrated).not.toHaveProperty('progressPercent')
     expect(migrated).not.toHaveProperty('projectDocumentId')
   })

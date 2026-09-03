@@ -7,13 +7,13 @@ import { TimeEntryFields } from './TimeEntryFields'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
 const values: TimeEntryFormValues = {
-  startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, emObra: false, numeroObra: '', clientId: '', projectCode: '', activityId: '', disciplineCode: '', documentTypeCode: '',
+  startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, emObra: false, numeroObra: '', clientId: '', projectCode: '', activityId: '', disciplineCode: 'C',
   hours: '', minutes: '', details: '', editReason: '',
 }
 
 const filters: HistoryFiltersValue = {
   mode: 'MONTH', day: '2026-07-20', month: '2026-07', startDate: '2026-07-01', endDate: '2026-07-20',
-  clientId: '', projectCode: '', activityId: '', disciplineCode: '', documentTypeCode: '', status: 'ACTIVE',
+  clientId: '', projectCode: '', activityId: '', disciplineCode: '', status: 'ACTIVE',
 }
 
 describe('markup acessível de apontamentos e histórico', () => {
@@ -25,7 +25,8 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).toContain('for="client"')
     expect(markup).toContain('for="project-code"')
     expect(markup).toContain('for="discipline"')
-    expect(markup).toContain('for="document-type"')
+    expect(markup).toContain('C – Campo')
+    expect(markup).not.toContain('Tipo de documento')
   })
 
   it('preserva o texto do número do projeto e exibe atividades corporativas quando não está em obra', () => {
@@ -45,7 +46,7 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).toContain('for="history-mode"')
     expect(markup).toContain('for="history-client"')
     expect(markup).toContain('for="history-project"')
-    expect(markup).toContain('for="history-document-type"')
+    expect(markup).not.toContain('for="history-document-type"')
     expect(markup).toContain('Situação do apontamento')
     expect(markup).toContain('Somente ativos')
     expect(markup).toContain('Somente cancelados')

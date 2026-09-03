@@ -3,7 +3,7 @@ import { calculateDaySummary } from '../features/calendar/domain'
 import type { DailySummary } from '../features/calendar/types'
 import type { AuditEvent } from '../features/audit/types'
 import type { AssignmentSnapshot } from '../features/squads/types'
-import type { CreateTimeEntryData, DisciplineCode, DocumentTypeCode, TimeEntry } from '../features/time-entries/types'
+import type { CreateTimeEntryData, DisciplineCode, TimeEntry } from '../features/time-entries/types'
 import { expandTimeEntryDates } from '../features/time-entries/domain'
 import type { WorkloadVersion } from '../features/workloads/types'
 import { isIsoDate } from '../shared/utils/date'
@@ -33,7 +33,6 @@ export type TimeEntryFilters = {
   projectCode?: string
   activityId?: string
   disciplineCode?: DisciplineCode
-  documentTypeCode?: DocumentTypeCode
   status?: TimeEntry['status']
 }
 
@@ -93,10 +92,7 @@ type ReadResult = {
   canWrite: boolean
 }
 
-const disciplineCodes: readonly DisciplineCode[] = ['—', 'A', 'E']
-const documentTypeCodes: readonly DocumentTypeCode[] = [
-  '—', 'RN', 'GR', 'G', 'FD', 'DE', 'LM', 'DI', 'LC', 'LI', 'ET', 'MC', 'MO', 'MD', 'FG', 'LA', 'ES', 'CF',
-]
+const disciplineCodes: readonly DisciplineCode[] = ['C']
 
 function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   const { endDate: _endDate, weekdaysOnly: _weekdaysOnly, ...baseData } = data
@@ -112,7 +108,6 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   if (!data.activityId) throw new Error('Informe a atividade.')
   if (emObra && !numeroObra) throw new Error('Informe o número da obra.')
   if (!disciplineCodes.includes(data.disciplineCode)) throw new Error('Informe a disciplina.')
-  if (!documentTypeCodes.includes(data.documentTypeCode)) throw new Error('Informe o tipo de documento.')
   if (!Number.isInteger(data.durationMinutes) || data.durationMinutes <= 0 || data.durationMinutes > MAX_ENTRY_MINUTES) {
     throw new Error('Informe uma duração válida.')
   }
@@ -280,7 +275,6 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       .filter((entry) => !filters.projectCode || entry.projectCode.toLocaleLowerCase().includes(filters.projectCode.toLocaleLowerCase()))
       .filter((entry) => !filters.activityId || entry.activityId === filters.activityId)
       .filter((entry) => !filters.disciplineCode || entry.disciplineCode === filters.disciplineCode)
-      .filter((entry) => !filters.documentTypeCode || entry.documentTypeCode === filters.documentTypeCode)
       .filter((entry) => !filters.status || entry.status === filters.status)
       .sort((left, right) => right.entryDate.localeCompare(left.entryDate) || right.createdAt.localeCompare(left.createdAt))
     const items = entries.slice(offset, offset + pageSize)
@@ -331,7 +325,6 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       projectCode: normalized.projectCode,
       activityId: normalized.activityId,
       disciplineCode: normalized.disciplineCode,
-      documentTypeCode: normalized.documentTypeCode,
       durationMinutes: normalized.durationMinutes,
       details: normalized.details,
       assignmentSnapshot,
@@ -386,7 +379,6 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       projectCode: overrides.projectCode ?? entry.projectCode,
       activityId: overrides.activityId ?? entry.activityId,
       disciplineCode: overrides.disciplineCode ?? entry.disciplineCode,
-      documentTypeCode: overrides.documentTypeCode ?? entry.documentTypeCode,
       durationMinutes: overrides.durationMinutes ?? entry.durationMinutes,
       details: overrides.details ?? entry.details,
     })
@@ -406,7 +398,6 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       projectCode: normalized.projectCode,
       activityId: normalized.activityId,
       disciplineCode: normalized.disciplineCode,
-      documentTypeCode: normalized.documentTypeCode,
       durationMinutes: normalized.durationMinutes,
       details: normalized.details,
       assignmentSnapshot,

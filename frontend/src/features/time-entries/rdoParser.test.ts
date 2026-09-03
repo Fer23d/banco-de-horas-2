@@ -8,7 +8,8 @@ describe('parser de RDO em PDF', () => {
       Obra 25M020E
       Data OS 28/07/2026
       DESCRIÇÃO DA ATIVIDADE E DO LOCAL
-      Deslocamento até a obra, reunião de segurança e levantamento de campo na área industrial.
+      07:30 12:30 Deslocamento até a obra, reunião de segurança.
+      13:30 17:30 Levantamento de campo na área industrial.
       Total de Horas 9.0
       Assinatura do responsável
     `)
@@ -18,7 +19,7 @@ describe('parser de RDO em PDF', () => {
       dataApontamento: '2026-07-28',
       horas: '9',
       minutos: '0',
-      detalhes: 'Deslocamento até a obra, reunião de segurança e levantamento de campo na área industrial.',
+      detalhes: '[07:30 - 12:30] Deslocamento até a obra, reunião de segurança.\n\n[13:30 - 17:30] Levantamento de campo na área industrial.',
     })
   })
 
