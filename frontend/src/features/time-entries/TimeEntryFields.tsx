@@ -143,12 +143,14 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         <FieldError id="client-error" message={errors.clientId} />
       </div>
 
-      <div>
-        <label htmlFor="project-code" className="text-sm font-bold ui-text">Número do projeto</label>
-        <input id="project-code" name="projectCode" type="text" maxLength={80} value={values.projectCode} onChange={(event) => onChange('projectCode', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.projectCode)} aria-describedby={errors.projectCode ? 'project-code-help project-code-error' : 'project-code-help'} />
-        <p id="project-code-help" className="mt-1.5 text-xs ui-text-subtle">* Escreva exatamente a numeração do projeto atual, caso já possua.</p>
-        <FieldError id="project-code-error" message={errors.projectCode} />
-      </div>
+      {!values.emObra && (
+        <div>
+          <label htmlFor="project-code" className="text-sm font-bold ui-text">Número do projeto</label>
+          <input id="project-code" name="projectCode" type="text" maxLength={80} value={values.projectCode} onChange={(event) => onChange('projectCode', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.projectCode)} aria-describedby={errors.projectCode ? 'project-code-help project-code-error' : 'project-code-help'} />
+          <p id="project-code-help" className="mt-1.5 text-xs ui-text-subtle">* Escreva exatamente a numeração do projeto atual, caso já possua.</p>
+          <FieldError id="project-code-error" message={errors.projectCode} />
+        </div>
+      )}
 
       <div>
         <label htmlFor="activity" className="text-sm font-bold ui-text">Atividade realizada</label>

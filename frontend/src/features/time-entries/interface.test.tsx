@@ -40,6 +40,15 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).not.toContain('Documento (LD)')
   })
 
+  it('oculta número do projeto e exibe número da obra quando está em campo', () => {
+    const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" onChange={vi.fn()} />)
+    expect(markup).toContain('for="work-site-number"')
+    expect(markup).toContain('Número da obra')
+    expect(markup).toContain('Serviços em campo')
+    expect(markup).not.toContain('for="project-code"')
+    expect(markup).not.toContain('Número do projeto')
+  })
+
   it('oferece filtros de período e dados individuais com labels', () => {
     const markup = renderToStaticMarkup(<HistoryFilters value={filters} onChange={vi.fn()} onApply={vi.fn()} />)
     expect(markup).toContain('aria-label="Filtros do histórico"')

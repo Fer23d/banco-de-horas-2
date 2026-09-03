@@ -116,7 +116,7 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       emObra: values.emObra,
       numeroObra: values.emObra ? values.numeroObra : undefined,
       clientId: values.clientId,
-      projectCode: values.projectCode,
+      projectCode: values.emObra ? values.numeroObra : values.projectCode,
       activityId: values.activityId,
       disciplineCode: 'C',
       durationMinutes: hoursAndMinutesToMinutes(durationHours, durationRemainderMinutes),
