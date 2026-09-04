@@ -6,7 +6,7 @@ import type { AssignmentSnapshot } from '../features/squads/types'
 import type { CreateTimeEntryData, DisciplineCode, TimeEntry } from '../features/time-entries/types'
 import { expandTimeEntryDates } from '../features/time-entries/domain'
 import type { WorkloadVersion } from '../features/workloads/types'
-import { isIsoDate } from '../shared/utils/date'
+import { isIsoDate, isWeekend } from '../shared/utils/date'
 import { createBrowserStorage, type StorageLike } from './storage'
 import { auditService } from './auditService'
 import { profileService } from './profileService'
@@ -87,6 +87,19 @@ type ReadResult = {
 }
 
 const disciplineCodes: readonly DisciplineCode[] = ['C']
+const dayTypes = ['WEEKDAY', 'WEEKEND', 'HOLIDAY'] as const
+
+function normalizeOptionalMinutes(value: number | undefined) {
+  if (value === undefined) return 0
+  if (!Number.isInteger(value) || value < 0 || value > MAX_ENTRY_MINUTES) throw new Error('Informe uma classificação de horas válida.')
+  return value
+}
+
+function resolveDayType(data: CreateTimeEntryData) {
+  if (data.isHoliday) return 'HOLIDAY'
+  if (data.dayType && dayTypes.includes(data.dayType)) return data.dayType
+  return isWeekend(data.entryDate) ? 'WEEKEND' : 'WEEKDAY'
+}
 
 function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   const { endDate: _endDate, weekdaysOnly: _weekdaysOnly, ...baseData } = data
@@ -106,7 +119,18 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
     throw new Error('Informe uma duração válida.')
   }
   if (!details) throw new Error('Informe o detalhamento.')
-  return { ...baseData, emObra, numeroObra: emObra ? numeroObra : undefined, projectCode, details }
+  return {
+    ...baseData,
+    emObra,
+    numeroObra: emObra ? numeroObra : undefined,
+    projectCode,
+    details,
+    dayType: resolveDayType(data),
+    isHoliday: Boolean(data.isHoliday),
+    overtimeMinutes: normalizeOptionalMinutes(data.overtimeMinutes),
+    nightMinutes: normalizeOptionalMinutes(data.nightMinutes),
+    partialDayOffMinutes: normalizeOptionalMinutes(data.partialDayOffMinutes),
+  }
 }
 
 function emptyStorage(): TimeEntryStorageV3 {
@@ -317,6 +341,11 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       activityId: normalized.activityId,
       disciplineCode: normalized.disciplineCode,
       durationMinutes: normalized.durationMinutes,
+      dayType: normalized.dayType ?? (isWeekend(date) ? 'WEEKEND' : 'WEEKDAY'),
+      isHoliday: normalized.isHoliday ?? false,
+      overtimeMinutes: normalized.overtimeMinutes ?? 0,
+      nightMinutes: normalized.nightMinutes ?? 0,
+      partialDayOffMinutes: normalized.partialDayOffMinutes ?? 0,
       details: normalized.details,
       assignmentSnapshot,
       status: 'ACTIVE',
@@ -371,6 +400,11 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       activityId: overrides.activityId ?? entry.activityId,
       disciplineCode: overrides.disciplineCode ?? entry.disciplineCode,
       durationMinutes: overrides.durationMinutes ?? entry.durationMinutes,
+      dayType: overrides.dayType ?? entry.dayType,
+      isHoliday: overrides.isHoliday ?? entry.isHoliday,
+      overtimeMinutes: overrides.overtimeMinutes ?? entry.overtimeMinutes,
+      nightMinutes: overrides.nightMinutes ?? entry.nightMinutes,
+      partialDayOffMinutes: overrides.partialDayOffMinutes ?? entry.partialDayOffMinutes,
       details: overrides.details ?? entry.details,
     })
     await this.ensureMutable(collaborId, normalized.entryDate)
@@ -390,6 +424,11 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       activityId: normalized.activityId,
       disciplineCode: normalized.disciplineCode,
       durationMinutes: normalized.durationMinutes,
+      dayType: normalized.dayType ?? entry.dayType,
+      isHoliday: normalized.isHoliday ?? entry.isHoliday,
+      overtimeMinutes: normalized.overtimeMinutes ?? entry.overtimeMinutes,
+      nightMinutes: normalized.nightMinutes ?? entry.nightMinutes,
+      partialDayOffMinutes: normalized.partialDayOffMinutes ?? entry.partialDayOffMinutes,
       details: normalized.details,
       assignmentSnapshot,
       status: 'ACTIVE',

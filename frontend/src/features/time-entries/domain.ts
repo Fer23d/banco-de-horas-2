@@ -8,6 +8,7 @@ import { compareIsoDates, eachIsoDate, isIsoDate, isWeekend } from '../../shared
 
 export const MAX_ENTRY_MINUTES = 24 * 60
 export const MAX_PROJECT_CODE_LENGTH = 80
+export const NORMAL_WORKDAY_MINUTES = 8 * 60
 
 export const fieldWorkActivities = [
   { id: 'field-travel', name: 'Viagem', active: true },
@@ -90,6 +91,9 @@ export function validateTimeEntry(
   if (data.emObra && !data.numeroObra?.trim()) errors.numeroObra = 'Informe o número da obra.'
   if (data.disciplineCode !== 'C') errors.disciplineCode = 'A disciplina deve permanecer como C – Campo.'
   if (!isValidDuration(data.durationMinutes)) errors.durationMinutes = 'A duração deve ser maior que zero e de no máximo 24 horas.'
+  if (data.overtimeMinutes !== undefined && !Number.isInteger(data.overtimeMinutes)) errors.overtimeMinutes = 'Informe horas extras em horas e minutos inteiros.'
+  if (data.nightMinutes !== undefined && !Number.isInteger(data.nightMinutes)) errors.nightMinutes = 'Informe horas noturnas em horas e minutos inteiros.'
+  if (data.partialDayOffMinutes !== undefined && !Number.isInteger(data.partialDayOffMinutes)) errors.partialDayOffMinutes = 'Informe a folga parcial em horas e minutos inteiros.'
   if (!data.details.trim()) errors.details = 'Descreva o trabalho realizado.'
   return errors
 }

@@ -1,8 +1,43 @@
 import { useEffect, useRef, type FormEvent } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { getCorporateToday, isIsoDate } from '../../shared/utils/date'
+import { getCorporateToday, isIsoDate, isWeekend } from '../../shared/utils/date'
 import { FieldError, fieldClassName, TimeEntryFields } from './TimeEntryFields'
+import { formatMinutes, hoursAndMinutesToMinutes, NORMAL_WORKDAY_MINUTES } from './domain'
 import { useTimeEntryForm } from './useTimeEntryForm'
+
+function hourMinuteFields({
+  idPrefix,
+  label,
+  hours,
+  minutes,
+  onHoursChange,
+  onMinutesChange,
+  error,
+}: {
+  idPrefix: string
+  label: string
+  hours: string
+  minutes: string
+  onHoursChange: (value: string) => void
+  onMinutesChange: (value: string) => void
+  error?: string
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold ui-text-muted">{label}</p>
+      <div className="mt-2 grid max-w-sm grid-cols-2 gap-3">
+        <div>
+          <label htmlFor={`${idPrefix}-hours`} className="text-xs font-semibold ui-text-muted">Horas</label>
+          <input id={`${idPrefix}-hours`} type="number" min="0" max="24" step="1" inputMode="numeric" value={hours} onChange={(event) => onHoursChange(event.target.value)} className={fieldClassName} aria-invalid={Boolean(error)} />
+        </div>
+        <div>
+          <label htmlFor={`${idPrefix}-minutes`} className="text-xs font-semibold ui-text-muted">Minutos</label>
+          <input id={`${idPrefix}-minutes`} type="number" min="0" max="59" step="1" inputMode="numeric" value={minutes} onChange={(event) => onMinutesChange(event.target.value)} className={fieldClassName} aria-invalid={Boolean(error)} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function TimeEntryForm({ entryId }: { entryId?: string }) {
   const [searchParams] = useSearchParams()
@@ -29,6 +64,11 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
   if (controller.isLoading) return <p aria-live="polite" className="text-sm font-semibold ui-text-muted">Carregando apontamento…</p>
 
   const submitLabel = controller.mode === 'EDIT' ? 'Salvar alterações' : controller.mode === 'DUPLICATE' ? 'Salvar duplicação' : 'Salvar apontamento'
+  const hasExtractedRdoDays = controller.extractedRdoDays.length > 0
+  const isSpecialDay = controller.values.isHoliday || isWeekend(controller.values.startDate)
+  const overtimeMinutes = controller.values.hasOvertime ? hoursAndMinutesToMinutes(Number(controller.values.overtimeHours || 0), Number(controller.values.overtimeMinutes || 0)) : 0
+  const partialDayOffMinutes = controller.values.hasPartialDayOff ? hoursAndMinutesToMinutes(Number(controller.values.partialDayOffHours || 0), Number(controller.values.partialDayOffMinutes || 0)) : 0
+  const calculatedWorkdayMinutes = Math.max(NORMAL_WORKDAY_MINUTES + overtimeMinutes - partialDayOffMinutes, 0)
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -50,20 +90,102 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
         onChange={controller.setField}
       />
 
-      <fieldset>
-        <legend className="text-sm font-bold ui-text">Duração em horas e minutos</legend>
-        <p className="mt-1 text-xs ui-text-subtle">Exemplos: 00h30, 01h15 ou 08h00.</p>
-        <div className="mt-2 grid max-w-sm grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="duration-hours" className="text-xs font-semibold ui-text-muted">Horas</label>
-            <input id="duration-hours" name="hours" type="number" min="0" max="24" step="1" inputMode="numeric" value={controller.values.hours} onChange={(event) => controller.setField('hours', event.target.value)} className={fieldClassName} disabled={controller.extractedRdoDays.length > 0} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
+      <fieldset className="rounded-2xl border ui-border ui-surface-subtle p-4">
+        <legend className="px-1 text-sm font-bold ui-text">Detalhamento de horas</legend>
+        <p className="mt-1 text-xs ui-text-subtle">O horário de almoço já deve estar deduzido nos totais do RDO ou nos valores calculados.</p>
+
+        {hasExtractedRdoDays ? (
+          <p className="mt-3 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold ui-text">
+            As durações serão salvas a partir de cada dia importado do RDO.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <label className="inline-flex items-center gap-2 text-sm font-semibold ui-text">
+              <input type="checkbox" checked={controller.values.isHoliday} onChange={(event) => controller.setField('isHoliday', event.target.checked)} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+              É feriado?
+            </label>
+
+            {isSpecialDay ? (
+              <>
+                {hourMinuteFields({
+                  idPrefix: 'duration',
+                  label: controller.values.isHoliday ? 'Quantidade de horas totais no feriado' : 'Quantidade de horas totais no fim de semana',
+                  hours: controller.values.hours,
+                  minutes: controller.values.minutes,
+                  onHoursChange: (value) => controller.setField('hours', value),
+                  onMinutesChange: (value) => controller.setField('minutes', value),
+                  error: controller.errors.durationMinutes,
+                })}
+                <label className="inline-flex items-center gap-2 text-sm font-semibold ui-text">
+                  <input type="checkbox" checked={controller.values.hasNightHours} onChange={(event) => controller.setField('hasNightHours', event.target.checked)} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+                  Teve hora noturna (22h às 05h)?
+                </label>
+                {controller.values.hasNightHours && hourMinuteFields({
+                  idPrefix: 'night',
+                  label: 'Quantidade de horas noturnas',
+                  hours: controller.values.nightHours,
+                  minutes: controller.values.nightMinutes,
+                  onHoursChange: (value) => controller.setField('nightHours', value),
+                  onMinutesChange: (value) => controller.setField('nightMinutes', value),
+                  error: controller.errors.nightMinutes,
+                })}
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl border ui-border bg-[var(--color-surface)] px-3 py-2 text-sm ui-text">
+                  <p className="font-bold">Carga normal travada</p>
+                  <p className="mt-1 ui-text-muted">{formatMinutes(NORMAL_WORKDAY_MINUTES)} para dia útil sem hora extra.</p>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm font-semibold ui-text">
+                  <input type="checkbox" checked={controller.values.hasOvertime} onChange={(event) => controller.setField('hasOvertime', event.target.checked)} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+                  Teve hora extra?
+                </label>
+                {controller.values.hasOvertime && hourMinuteFields({
+                  idPrefix: 'overtime',
+                  label: 'Quantidade de horas extras',
+                  hours: controller.values.overtimeHours,
+                  minutes: controller.values.overtimeMinutes,
+                  onHoursChange: (value) => controller.setField('overtimeHours', value),
+                  onMinutesChange: (value) => controller.setField('overtimeMinutes', value),
+                  error: controller.errors.overtimeMinutes,
+                })}
+                <label className="inline-flex items-center gap-2 text-sm font-semibold ui-text">
+                  <input type="checkbox" checked={controller.values.hasNightHours} onChange={(event) => controller.setField('hasNightHours', event.target.checked)} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+                  Teve hora noturna (22h às 05h)?
+                </label>
+                {controller.values.hasNightHours && hourMinuteFields({
+                  idPrefix: 'night',
+                  label: 'Quantidade de horas noturnas',
+                  hours: controller.values.nightHours,
+                  minutes: controller.values.nightMinutes,
+                  onHoursChange: (value) => controller.setField('nightHours', value),
+                  onMinutesChange: (value) => controller.setField('nightMinutes', value),
+                  error: controller.errors.nightMinutes,
+                })}
+                <label className="inline-flex items-center gap-2 text-sm font-semibold ui-text">
+                  <input type="checkbox" checked={controller.values.hasPartialDayOff} onChange={(event) => controller.setField('hasPartialDayOff', event.target.checked)} className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--color-primary)]" />
+                  Teve folga parcial no dia?
+                </label>
+                {controller.values.hasPartialDayOff && hourMinuteFields({
+                  idPrefix: 'partial-day-off',
+                  label: 'Quantidade de horas de folga',
+                  hours: controller.values.partialDayOffHours,
+                  minutes: controller.values.partialDayOffMinutes,
+                  onHoursChange: (value) => controller.setField('partialDayOffHours', value),
+                  onMinutesChange: (value) => controller.setField('partialDayOffMinutes', value),
+                  error: controller.errors.partialDayOffMinutes,
+                })}
+                <p className="rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold ui-text">
+                  Total calculado para lançamento: {formatMinutes(calculatedWorkdayMinutes)}
+                </p>
+              </>
+            )}
           </div>
-          <div>
-            <label htmlFor="duration-minutes" className="text-xs font-semibold ui-text-muted">Minutos</label>
-            <input id="duration-minutes" name="minutes" type="number" min="0" max="59" step="1" inputMode="numeric" value={controller.values.minutes} onChange={(event) => controller.setField('minutes', event.target.value)} className={fieldClassName} disabled={controller.extractedRdoDays.length > 0} aria-invalid={Boolean(controller.errors.durationMinutes)} aria-describedby={controller.errors.durationMinutes ? 'duration-error' : undefined} />
-          </div>
-        </div>
+        )}
         <FieldError id="duration-error" message={controller.errors.durationMinutes} />
+        <FieldError id="overtime-error" message={controller.errors.overtimeMinutes} />
+        <FieldError id="night-error" message={controller.errors.nightMinutes} />
+        <FieldError id="partial-day-off-error" message={controller.errors.partialDayOffMinutes} />
       </fieldset>
 
       <div>

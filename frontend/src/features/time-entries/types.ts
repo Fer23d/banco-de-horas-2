@@ -2,6 +2,7 @@ import type { AssignmentSnapshot } from '../squads/types'
 
 export type TimeEntryStatus = 'ACTIVE' | 'CANCELLED'
 export type DisciplineCode = 'C'
+export type TimeEntryDayType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY'
 
 export interface TimeEntry {
   id: string
@@ -14,6 +15,11 @@ export interface TimeEntry {
   activityId: string
   disciplineCode: DisciplineCode
   durationMinutes: number
+  dayType: TimeEntryDayType
+  isHoliday: boolean
+  overtimeMinutes: number
+  nightMinutes: number
+  partialDayOffMinutes: number
   details: string
   assignmentSnapshot: AssignmentSnapshot | null
   status: TimeEntryStatus
@@ -40,6 +46,11 @@ export type CreateTimeEntryData = Pick<
   numeroObra?: string
   endDate?: string
   weekdaysOnly?: boolean
+  dayType?: TimeEntryDayType
+  isHoliday?: boolean
+  overtimeMinutes?: number
+  nightMinutes?: number
+  partialDayOffMinutes?: number
 }
 
 export type TimeEntryValidationErrors = Partial<Record<keyof CreateTimeEntryData, string>>

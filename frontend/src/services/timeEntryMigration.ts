@@ -1,7 +1,7 @@
 import { MAX_ENTRY_MINUTES, MAX_PROJECT_CODE_LENGTH } from '../config/business'
 import type { AssignmentSnapshot } from '../features/squads/types'
 import type { DisciplineCode, TimeEntry } from '../features/time-entries/types'
-import { isIsoDate } from '../shared/utils/date'
+import { isIsoDate, isWeekend } from '../shared/utils/date'
 
 export const LEGACY_V1_TIME_ENTRY_STORAGE_KEY = 'sma:time-entries:v1'
 export const LEGACY_V2_TIME_ENTRY_STORAGE_KEY = 'sma:time-entries:v2'
@@ -27,6 +27,11 @@ type V2TimeEntry = Omit<TimeEntry, 'disciplineCode' | 'assignmentSnapshot' | 'em
   assignmentSnapshot?: unknown
   emObra?: unknown
   numeroObra?: unknown
+  dayType?: unknown
+  isHoliday?: unknown
+  overtimeMinutes?: unknown
+  nightMinutes?: unknown
+  partialDayOffMinutes?: unknown
 }
 
 type V1TimeEntry = Omit<V2TimeEntry, 'projectCode'> & { projectId: string }
@@ -91,6 +96,16 @@ function optionalString(value: unknown) {
   return typeof value === 'string' && value ? value : undefined
 }
 
+function optionalMinutes(value: unknown) {
+  return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_ENTRY_MINUTES ? Number(value) : 0
+}
+
+function normalizeDayType(value: unknown, entryDate: string, isHoliday: boolean) {
+  if (isHoliday) return 'HOLIDAY'
+  if (value === 'WEEKDAY' || value === 'WEEKEND' || value === 'HOLIDAY') return value
+  return isWeekend(entryDate) ? 'WEEKEND' : 'WEEKDAY'
+}
+
 function migrateV2Entry(entry: V2TimeEntry, collaboratorId: string): TimeEntry | null {
   return normalizeTimeEntry({
     id: entry.id,
@@ -103,6 +118,11 @@ function migrateV2Entry(entry: V2TimeEntry, collaboratorId: string): TimeEntry |
     activityId: entry.activityId,
     disciplineCode: 'C',
     durationMinutes: entry.durationMinutes,
+    dayType: normalizeDayType(entry.dayType, entry.entryDate, entry.isHoliday === true),
+    isHoliday: entry.isHoliday === true,
+    overtimeMinutes: optionalMinutes(entry.overtimeMinutes),
+    nightMinutes: optionalMinutes(entry.nightMinutes),
+    partialDayOffMinutes: optionalMinutes(entry.partialDayOffMinutes),
     details: entry.details.trim(),
     assignmentSnapshot: safeLegacyAssignmentByCollaboratorId[collaboratorId] ?? null,
     status: entry.status,
@@ -153,6 +173,11 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
     activityId: entry.activityId,
     disciplineCode: 'C',
     durationMinutes: Number(entry.durationMinutes),
+    dayType: normalizeDayType(entry.dayType, String(entry.entryDate), entry.isHoliday === true),
+    isHoliday: entry.isHoliday === true,
+    overtimeMinutes: optionalMinutes(entry.overtimeMinutes),
+    nightMinutes: optionalMinutes(entry.nightMinutes),
+    partialDayOffMinutes: optionalMinutes(entry.partialDayOffMinutes),
     details: entry.details.trim(),
     assignmentSnapshot: entry.assignmentSnapshot as AssignmentSnapshot | null,
     status: entry.status,

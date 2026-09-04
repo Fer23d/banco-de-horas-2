@@ -4,8 +4,8 @@ import { entryDateAvailabilityService } from '../../services/entryDateAvailabili
 import { timeEntryService } from '../../services/timeEntryService'
 import type { ParsedRDODay } from './rdoParser'
 import type { CreateTimeEntryData, TimeEntry, TimeEntryValidationErrors } from './types'
-import { expandTimeEntryDates } from './domain'
-import { getCorporateToday, isIsoDate } from '../../shared/utils/date'
+import { expandTimeEntryDates, NORMAL_WORKDAY_MINUTES } from './domain'
+import { getCorporateToday, isIsoDate, isWeekend } from '../../shared/utils/date'
 import { useSession } from '../session/useSession'
 import { areValidDurationParts, hoursAndMinutesToMinutes, validateTimeEntry } from './domain'
 
@@ -21,6 +21,16 @@ export type TimeEntryFormValues = {
   disciplineCode: CreateTimeEntryData['disciplineCode'] | ''
   hours: string
   minutes: string
+  isHoliday: boolean
+  hasOvertime: boolean
+  overtimeHours: string
+  overtimeMinutes: string
+  hasNightHours: boolean
+  nightHours: string
+  nightMinutes: string
+  hasPartialDayOff: boolean
+  partialDayOffHours: string
+  partialDayOffMinutes: string
   details: string
   editReason: string
 }
@@ -37,6 +47,16 @@ const emptyValues = (entryDate: string): TimeEntryFormValues => ({
   disciplineCode: 'C',
   hours: '',
   minutes: '',
+  isHoliday: false,
+  hasOvertime: false,
+  overtimeHours: '',
+  overtimeMinutes: '',
+  hasNightHours: false,
+  nightHours: '',
+  nightMinutes: '',
+  hasPartialDayOff: false,
+  partialDayOffHours: '',
+  partialDayOffMinutes: '',
   details: '',
   editReason: '',
 })
@@ -54,6 +74,16 @@ function valuesFromEntry(entry: TimeEntry): TimeEntryFormValues {
     disciplineCode: 'C',
     hours: String(Math.floor(entry.durationMinutes / 60)),
     minutes: String(entry.durationMinutes % 60),
+    isHoliday: entry.isHoliday,
+    hasOvertime: entry.overtimeMinutes > 0,
+    overtimeHours: entry.overtimeMinutes > 0 ? String(Math.floor(entry.overtimeMinutes / 60)) : '',
+    overtimeMinutes: entry.overtimeMinutes > 0 ? String(entry.overtimeMinutes % 60) : '',
+    hasNightHours: entry.nightMinutes > 0,
+    nightHours: entry.nightMinutes > 0 ? String(Math.floor(entry.nightMinutes / 60)) : '',
+    nightMinutes: entry.nightMinutes > 0 ? String(entry.nightMinutes % 60) : '',
+    hasPartialDayOff: entry.partialDayOffMinutes > 0,
+    partialDayOffHours: entry.partialDayOffMinutes > 0 ? String(Math.floor(entry.partialDayOffMinutes / 60)) : '',
+    partialDayOffMinutes: entry.partialDayOffMinutes > 0 ? String(entry.partialDayOffMinutes % 60) : '',
     details: entry.details,
     editReason: '',
   }
@@ -74,6 +104,30 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [extractedRdoDays, setExtractedRdoDays] = useState<ParsedRDODay[]>([])
+
+  const calculateClassifiedDuration = useCallback((entryDate: string) => {
+    const overtimeMinutes = values.hasOvertime
+      ? hoursAndMinutesToMinutes(Number(values.overtimeHours || 0), Number(values.overtimeMinutes || 0))
+      : 0
+    const nightMinutes = values.hasNightHours
+      ? hoursAndMinutesToMinutes(Number(values.nightHours || 0), Number(values.nightMinutes || 0))
+      : 0
+    const partialDayOffMinutes = values.hasPartialDayOff
+      ? hoursAndMinutesToMinutes(Number(values.partialDayOffHours || 0), Number(values.partialDayOffMinutes || 0))
+      : 0
+    const isSpecialDay = values.isHoliday || isWeekend(entryDate)
+    const durationMinutes = isSpecialDay
+      ? hoursAndMinutesToMinutes(Number(values.hours || 0), Number(values.minutes || 0))
+      : Math.max(NORMAL_WORKDAY_MINUTES + overtimeMinutes - partialDayOffMinutes, 0)
+
+    return {
+      durationMinutes,
+      overtimeMinutes: isSpecialDay ? 0 : overtimeMinutes,
+      nightMinutes,
+      partialDayOffMinutes: isSpecialDay ? 0 : partialDayOffMinutes,
+      dayType: values.isHoliday ? 'HOLIDAY' as const : isWeekend(entryDate) ? 'WEEKEND' as const : 'WEEKDAY' as const,
+    }
+  }, [values.hasNightHours, values.hasOvertime, values.hasPartialDayOff, values.isHoliday, values.nightHours, values.nightMinutes, values.hours, values.minutes, values.overtimeHours, values.overtimeMinutes, values.partialDayOffHours, values.partialDayOffMinutes])
 
   useEffect(() => {
     if (!profile || !sourceId) return
@@ -114,6 +168,7 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
     const periodDates = mode === 'CREATE' && !hasExtractedRdoDays
       ? expandTimeEntryDates(values.startDate, effectiveEndDate, effectiveWeekdaysOnly)
       : [values.startDate]
+    const classifiedHours = calculateClassifiedDuration(effectiveStartDate)
     const data: CreateTimeEntryData = {
       entryDate: effectiveStartDate,
       endDate: effectiveEndDate,
@@ -126,7 +181,12 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       disciplineCode: 'C',
       durationMinutes: hasExtractedRdoDays
         ? hoursAndMinutesToMinutes(firstExtractedDay.horas, firstExtractedDay.minutos)
-        : hoursAndMinutesToMinutes(durationHours, durationRemainderMinutes),
+        : classifiedHours.durationMinutes,
+      dayType: hasExtractedRdoDays ? (isWeekend(firstExtractedDay.data) ? 'WEEKEND' : 'WEEKDAY') : classifiedHours.dayType,
+      isHoliday: hasExtractedRdoDays ? false : values.isHoliday,
+      overtimeMinutes: hasExtractedRdoDays ? 0 : classifiedHours.overtimeMinutes,
+      nightMinutes: hasExtractedRdoDays ? 0 : classifiedHours.nightMinutes,
+      partialDayOffMinutes: hasExtractedRdoDays ? 0 : classifiedHours.partialDayOffMinutes,
       details: hasExtractedRdoDays ? firstExtractedDay.detalhamento : values.details,
     }
     let dateBlock = { blocked: false } as Awaited<ReturnType<typeof entryDateAvailabilityService.getBlock>>
@@ -140,8 +200,13 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
     }
     const validationErrors = validateTimeEntry(data, demoClients, demoActivities, { today: getCorporateToday() })
     if (dateBlock.blocked) validationErrors.entryDate = dateBlock.message
-    if (!areValidDurationParts(durationHours, durationRemainderMinutes)) {
+    if (!hasExtractedRdoDays && (values.isHoliday || isWeekend(effectiveStartDate)) && !areValidDurationParts(durationHours, durationRemainderMinutes)) {
       validationErrors.durationMinutes = 'Informe horas inteiras entre 0 e 24 e minutos inteiros entre 0 e 59, com total máximo de 24 horas.'
+    }
+    if (!hasExtractedRdoDays) {
+      if (values.hasOvertime && !areValidDurationParts(Number(values.overtimeHours || 0), Number(values.overtimeMinutes || 0))) validationErrors.overtimeMinutes = 'Informe horas extras válidas.'
+      if (values.hasNightHours && !areValidDurationParts(Number(values.nightHours || 0), Number(values.nightMinutes || 0))) validationErrors.nightMinutes = 'Informe horas noturnas válidas.'
+      if (values.hasPartialDayOff && !areValidDurationParts(Number(values.partialDayOffHours || 0), Number(values.partialDayOffMinutes || 0))) validationErrors.partialDayOffMinutes = 'Informe horas de folga válidas.'
     }
     if (mode === 'CREATE') {
       if (hasExtractedRdoDays) {
@@ -188,6 +253,11 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
             numeroObra: values.numeroObra || day.numeroObra,
             projectCode: values.numeroObra || day.numeroObra,
             durationMinutes: hoursAndMinutesToMinutes(day.horas, day.minutos),
+            dayType: isWeekend(day.data) ? 'WEEKEND' : 'WEEKDAY',
+            isHoliday: false,
+            overtimeMinutes: 0,
+            nightMinutes: 0,
+            partialDayOffMinutes: 0,
             details: day.detalhamento,
           })))
           setSuccessMessage(`${extractedRdoDays.length} lançamentos do RDO salvos individualmente com sucesso.`)
