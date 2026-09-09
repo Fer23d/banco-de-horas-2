@@ -137,6 +137,15 @@ function emptyStorage(): TimeEntryStorageV3 {
   return { version: 3, entriesByCollaborator: {} }
 }
 
+function serializeStorage(data: TimeEntryStorageV3) {
+  try {
+    return JSON.stringify(data)
+  } catch (error) {
+    console.error('Erro no Storage:', error)
+    throw new Error('Os dados do apontamento não podem ser serializados para o armazenamento local.')
+  }
+}
+
 export class LocalStorageTimeEntryService implements TimeEntryService {
   private readonly storage: StorageLike
   private readonly createId: () => string
@@ -197,8 +206,9 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
 
   private read(): ReadResult {
     const empty = emptyStorage()
+    let rawV3: string | null = null
     try {
-      const rawV3 = this.storage.getItem(TIME_ENTRY_STORAGE_KEY)
+      rawV3 = this.storage.getItem(TIME_ENTRY_STORAGE_KEY)
       if (rawV3 !== null) return { data: this.parseV3(rawV3), canWrite: true }
       const legacyRawV3 = this.storage.getItem(LEGACY_V3_TIME_ENTRY_STORAGE_KEY)
       if (legacyRawV3 !== null) {
@@ -227,13 +237,28 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       if (JSON.stringify(persisted) !== serialized) throw new Error('A v3 gravada diverge dos dados migrados.')
       return { data: persisted, canWrite: true }
     } catch (error) {
+      console.error('Erro no Storage:', error)
       this.onStorageError('Não foi possível ler os apontamentos locais. Uma coleção vazia será utilizada.', error)
+
+      // Uma v3 corrompida pode ser reinicializada com segurança. Backups legados
+      // continuam intactos para que uma migração futura não perca dados.
+      if (rawV3 !== null) {
+        try {
+          const serializedEmpty = serializeStorage(empty)
+          this.storage.setItem(TIME_ENTRY_STORAGE_KEY, serializedEmpty)
+          const persistedRaw = this.storage.getItem(TIME_ENTRY_STORAGE_KEY)
+          if (persistedRaw === serializedEmpty) return { data: empty, canWrite: true }
+        } catch (resetError) {
+          console.error('Erro no Storage:', resetError)
+          this.onStorageError('Não foi possível reinicializar o armazenamento local.', resetError)
+        }
+      }
       return { data: empty, canWrite: false }
     }
   }
 
   private writeAndValidate(data: TimeEntryStorageV3) {
-    const serialized = JSON.stringify(data)
+    const serialized = serializeStorage(data)
     this.storage.setItem(TIME_ENTRY_STORAGE_KEY, serialized)
     const persistedRaw = this.storage.getItem(TIME_ENTRY_STORAGE_KEY)
     if (persistedRaw === null) throw new Error('A gravação local não pôde ser confirmada.')
