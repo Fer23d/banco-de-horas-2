@@ -4,6 +4,7 @@ import { getCorporateToday, isIsoDate, isWeekend } from '../../shared/utils/date
 import { FieldError, fieldClassName, TimeEntryFields } from './TimeEntryFields'
 import { formatMinutes, hoursAndMinutesToMinutes, NORMAL_WORKDAY_MINUTES } from './domain'
 import { useTimeEntryForm } from './useTimeEntryForm'
+import { CreateRdoButton } from '../rdo/CreateRdoButton'
 
 function hourMinuteFields({
   idPrefix,
@@ -44,7 +45,6 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
   const location = useLocation()
   const formRef = useRef<HTMLFormElement>(null)
   const [entryMode, setEntryMode] = useState<'manual' | 'rdo'>('manual')
-  const [generatedRdo, setGeneratedRdo] = useState<{ generatedAt: string; entries: Array<Record<string, string | number | boolean>> } | null>(null)
   const navigationState = location.state as { initialDate?: string; selectedDate?: string } | null
   const routedInitialDate = searchParams.get('date') ?? navigationState?.initialDate ?? navigationState?.selectedDate
   const controller = useTimeEntryForm({
@@ -65,33 +65,12 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
 
   const handleEntryModeChange = (mode: 'manual' | 'rdo') => {
     setEntryMode(mode)
-    setGeneratedRdo(null)
     controller.setField('emObra', mode === 'rdo')
     controller.setField('activityId', '')
     if (mode === 'manual') {
       controller.setField('numeroObra', '')
       controller.setExtractedRdoDays([])
     }
-  }
-
-  const handleGenerateRdo = () => {
-    const classifiedHours = controller.values.isHoliday || isWeekend(controller.values.startDate)
-      ? hoursAndMinutesToMinutes(Number(controller.values.hours || 0), Number(controller.values.minutes || 0))
-      : Math.max(NORMAL_WORKDAY_MINUTES + overtimeMinutes - partialDayOffMinutes, 0)
-    setGeneratedRdo({
-      generatedAt: new Date().toISOString(),
-      entries: [{
-        data: controller.values.startDate,
-        dataFinal: controller.values.endDate,
-        cliente: controller.values.clientId,
-        projeto: controller.values.projectCode,
-        atividade: controller.values.activityId,
-        disciplina: 'C',
-        horas: Math.floor(classifiedHours / 60),
-        minutos: classifiedHours % 60,
-        detalhamento: controller.values.details,
-      }],
-    })
   }
 
   if (controller.isLoading) return <p aria-live="polite" className="text-sm font-semibold ui-text-muted">Carregando apontamento…</p>
@@ -128,8 +107,7 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
           </div>
           {entryMode === 'manual' && (
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button type="button" onClick={handleGenerateRdo} className="rounded-xl border ui-border px-4 py-2.5 text-sm font-bold ui-text transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">Gerar RDO</button>
-              {generatedRdo && <p role="status" className="text-sm font-semibold text-[var(--color-primary)]">RDO preparado com os dados preenchidos.</p>}
+              <CreateRdoButton values={controller.values} />
             </div>
           )}
         </fieldset>
