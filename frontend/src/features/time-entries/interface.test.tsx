@@ -29,10 +29,9 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).not.toContain('Tipo de documento')
   })
 
-  it('preserva o texto do número do projeto e exibe atividades corporativas quando não está em obra', () => {
+  it('preserva o texto do número do projeto e exibe atividades corporativas no modo manual', () => {
     const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('* Escreva exatamente a numeração do projeto atual, caso já possua.')
-    expect(markup).toContain('Estava em obra?')
     expect(markup).toContain('Férias ou não prestação de serviço')
     expect(markup).toContain('Treinamento / evento corporativo')
     expect(markup).toContain('Se a data final for diferente')
@@ -40,8 +39,8 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).not.toContain('Documento (LD)')
   })
 
-  it('oculta número do projeto e exibe número da obra quando está em campo', () => {
-    const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
+  it('oculta número do projeto e exibe número da obra no modo RDO', () => {
+    const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" entryMode="rdo" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('for="work-site-number"')
     expect(markup).toContain('Número da obra')
     expect(markup).toContain('Serviços em campo')

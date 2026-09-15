@@ -31,33 +31,22 @@ type TimeEntryFieldsProps = {
   errors: TimeEntryValidationErrors
   maxDate: string
   allowBatchMode?: boolean
+  entryMode?: 'manual' | 'rdo'
   extractedRdoDays: ParsedRDODay[]
   onRdoDaysChange: (days: ParsedRDODay[]) => void
   onChange: <Key extends keyof TimeEntryFormValues>(field: Key, value: TimeEntryFormValues[Key]) => void
 }
 
-export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, extractedRdoDays, onRdoDaysChange, onChange }: TimeEntryFieldsProps) {
+export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true, entryMode = 'manual', extractedRdoDays, onRdoDaysChange, onChange }: TimeEntryFieldsProps) {
   const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
   const [rdoMessage, setRdoMessage] = useState<string | null>(null)
   const [mostrarTodosDias, setMostrarTodosDias] = useState(false)
-  const activityOptions = values.emObra ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
+  const activityOptions = entryMode === 'rdo' ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
   const hasExtractedRdoDays = extractedRdoDays.length > 0
   const rdoSummary = extractedRdoDays
     .slice(0, 4)
     .map((day) => `${formatDatePtBr(day.data)} (${formatRdoDayDuration(day)})`)
     .join(', ')
-
-  function handleWorkContextChange(emObra: boolean) {
-    onChange('emObra', emObra)
-    onChange('activityId', '')
-    onRdoDaysChange([])
-    setMostrarTodosDias(false)
-    if (!emObra) {
-      onChange('numeroObra', '')
-    }
-    setRdoStatus('idle')
-    setRdoMessage(null)
-  }
 
   async function handleRDOImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -69,6 +58,8 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
       const parsed = await parseRDO(file)
       let appliedFields = 0
       setMostrarTodosDias(false)
+      onChange('emObra', true)
+      onChange('activityId', '')
       onChange('clientId', VALE_CLIENT_ID)
       appliedFields += 1
       if (parsed.numeroObra) {
@@ -145,21 +136,7 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         )}
       </div>
 
-      <fieldset className="md:col-span-2 rounded-2xl border ui-border ui-surface-subtle p-4">
-        <legend className="px-1 text-sm font-bold ui-text">Estava em obra?</legend>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${values.emObra ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
-            <input type="radio" name="emObra" checked={values.emObra} onChange={() => handleWorkContextChange(true)} className="h-4 w-4 accent-[var(--color-primary)]" />
-            Sim, estava em obra
-          </label>
-          <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${!values.emObra ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
-            <input type="radio" name="emObra" checked={!values.emObra} onChange={() => handleWorkContextChange(false)} className="h-4 w-4 accent-[var(--color-primary)]" />
-            Não, atividade corporativa
-          </label>
-        </div>
-      </fieldset>
-
-      {values.emObra && (
+      {entryMode === 'rdo' && (
         <>
           <div className="md:col-span-2 rounded-2xl border ui-border ui-surface-subtle p-4">
             <label htmlFor="rdo-upload" className="text-sm font-bold ui-text">Importar arquivo RDO para preenchimento automático</label>
@@ -188,7 +165,7 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
         <FieldError id="client-error" message={errors.clientId} />
       </div>
 
-      {!values.emObra && (
+      {entryMode === 'manual' && (
         <div>
           <label htmlFor="project-code" className="text-sm font-bold ui-text">Número do projeto</label>
           <input id="project-code" name="projectCode" type="text" maxLength={80} value={values.projectCode} onChange={(event) => onChange('projectCode', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.projectCode)} aria-describedby={errors.projectCode ? 'project-code-help project-code-error' : 'project-code-help'} />

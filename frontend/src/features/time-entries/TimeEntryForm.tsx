@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { getCorporateToday, isIsoDate, isWeekend } from '../../shared/utils/date'
 import { FieldError, fieldClassName, TimeEntryFields } from './TimeEntryFields'
@@ -43,6 +43,8 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const formRef = useRef<HTMLFormElement>(null)
+  const [entryMode, setEntryMode] = useState<'manual' | 'rdo'>('manual')
+  const [generatedRdo, setGeneratedRdo] = useState<{ generatedAt: string; entries: Array<Record<string, string | number | boolean>> } | null>(null)
   const navigationState = location.state as { initialDate?: string; selectedDate?: string } | null
   const routedInitialDate = searchParams.get('date') ?? navigationState?.initialDate ?? navigationState?.selectedDate
   const controller = useTimeEntryForm({
@@ -59,6 +61,37 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await controller.submit()
+  }
+
+  const handleEntryModeChange = (mode: 'manual' | 'rdo') => {
+    setEntryMode(mode)
+    setGeneratedRdo(null)
+    controller.setField('emObra', mode === 'rdo')
+    controller.setField('activityId', '')
+    if (mode === 'manual') {
+      controller.setField('numeroObra', '')
+      controller.setExtractedRdoDays([])
+    }
+  }
+
+  const handleGenerateRdo = () => {
+    const classifiedHours = controller.values.isHoliday || isWeekend(controller.values.startDate)
+      ? hoursAndMinutesToMinutes(Number(controller.values.hours || 0), Number(controller.values.minutes || 0))
+      : Math.max(NORMAL_WORKDAY_MINUTES + overtimeMinutes - partialDayOffMinutes, 0)
+    setGeneratedRdo({
+      generatedAt: new Date().toISOString(),
+      entries: [{
+        data: controller.values.startDate,
+        dataFinal: controller.values.endDate,
+        cliente: controller.values.clientId,
+        projeto: controller.values.projectCode,
+        atividade: controller.values.activityId,
+        disciplina: 'C',
+        horas: Math.floor(classifiedHours / 60),
+        minutos: classifiedHours % 60,
+        detalhamento: controller.values.details,
+      }],
+    })
   }
 
   if (controller.isLoading) return <p aria-live="polite" className="text-sm font-semibold ui-text-muted">Carregando apontamento…</p>
@@ -80,11 +113,34 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
       )}
       {controller.submitError && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{controller.submitError}</p>}
 
+      {controller.mode === 'CREATE' && (
+        <fieldset className="rounded-2xl border ui-border ui-surface-subtle p-4">
+          <legend className="px-1 text-sm font-bold ui-text">Como deseja preencher?</legend>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <button type="button" onClick={() => handleEntryModeChange('rdo')} className={`rounded-xl border px-4 py-3 text-left transition ${entryMode === 'rdo' ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
+              <span className="block text-sm font-extrabold">Importar RDO</span>
+              <span className="mt-1 block text-xs">Leia um PDF localmente e preencha os dados automaticamente.</span>
+            </button>
+            <button type="button" onClick={() => handleEntryModeChange('manual')} className={`rounded-xl border px-4 py-3 text-left transition ${entryMode === 'manual' ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'ui-border bg-[var(--color-surface)] ui-text-muted hover:border-[var(--color-primary)]'}`}>
+              <span className="block text-sm font-extrabold">Preencher manualmente</span>
+              <span className="mt-1 block text-xs">Informe os dados e, se necessário, prepare uma estrutura de RDO.</span>
+            </button>
+          </div>
+          {entryMode === 'manual' && (
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button type="button" onClick={handleGenerateRdo} className="rounded-xl border ui-border px-4 py-2.5 text-sm font-bold ui-text transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">Gerar RDO</button>
+              {generatedRdo && <p role="status" className="text-sm font-semibold text-[var(--color-primary)]">RDO preparado com os dados preenchidos.</p>}
+            </div>
+          )}
+        </fieldset>
+      )}
+
       <TimeEntryFields
         values={controller.values}
         errors={controller.errors}
         maxDate={getCorporateToday()}
         allowBatchMode={controller.mode === 'CREATE'}
+        entryMode={entryMode}
         extractedRdoDays={controller.extractedRdoDays}
         onRdoDaysChange={controller.setExtractedRdoDays}
         onChange={controller.setField}
