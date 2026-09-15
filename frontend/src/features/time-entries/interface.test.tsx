@@ -33,7 +33,7 @@ describe('markup acessível de apontamentos e histórico', () => {
     const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
     expect(markup).toContain('* Escreva exatamente a numeração do projeto atual, caso já possua.')
     expect(markup).toContain('Férias ou não prestação de serviço')
-    expect(markup).toContain('Treinamento / evento corporativo')
+    expect(markup).toContain('ASO, Treinamento interno ou evento coorporativo')
     expect(markup).toContain('Se a data final for diferente')
     expect(markup).not.toContain('Avanço')
     expect(markup).not.toContain('Documento (LD)')

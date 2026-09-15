@@ -4,7 +4,7 @@ import type { DailySummary } from '../features/calendar/types'
 import type { AuditEvent } from '../features/audit/types'
 import type { AssignmentSnapshot } from '../features/squads/types'
 import type { CreateTimeEntryData, DisciplineCode, TimeEntry } from '../features/time-entries/types'
-import { expandTimeEntryDates } from '../features/time-entries/domain'
+import { expandTimeEntryDates, requiresWorkSiteNumber } from '../features/time-entries/domain'
 import type { WorkloadVersion } from '../features/workloads/types'
 import { isIsoDate, isWeekend } from '../shared/utils/date'
 import { createBrowserStorage, type StorageLike } from './storage'
@@ -107,13 +107,14 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   const numeroObra = data.numeroObra?.trim()
   const projectCode = data.projectCode.trim()
   const details = data.details.trim()
+  const needsWorkSiteNumber = emObra || requiresWorkSiteNumber(data.activityId)
   if (!isIsoDate(data.entryDate)) throw new Error('Informe uma data válida.')
   if (data.endDate && !isIsoDate(data.endDate)) throw new Error('Informe uma data final válida.')
   if (data.endDate && data.endDate < data.entryDate) throw new Error('A data final deve ser igual ou posterior à data inicial.')
   if (!data.clientId) throw new Error('Informe o cliente.')
   if (!projectCode || projectCode.length > MAX_PROJECT_CODE_LENGTH) throw new Error('Informe um código de projeto válido.')
   if (!data.activityId) throw new Error('Informe a atividade.')
-  if (emObra && !numeroObra) throw new Error('Informe o número da obra.')
+  if (needsWorkSiteNumber && !numeroObra) throw new Error('Informe o número da obra para esta atividade.')
   if (!disciplineCodes.includes(data.disciplineCode)) throw new Error('Informe a disciplina.')
   if (!Number.isInteger(data.durationMinutes) || data.durationMinutes <= 0 || data.durationMinutes > MAX_ENTRY_MINUTES) {
     throw new Error('Informe uma duração válida.')
@@ -122,7 +123,7 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   return {
     ...baseData,
     emObra,
-    numeroObra: emObra ? numeroObra : undefined,
+    numeroObra: needsWorkSiteNumber ? numeroObra : undefined,
     projectCode,
     details,
     dayType: resolveDayType(data),

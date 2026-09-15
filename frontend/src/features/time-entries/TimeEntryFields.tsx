@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import { demoClients } from '../../mocks/demoData'
 import { formatDatePtBr } from '../../shared/utils/date'
-import { activityOptionsByWorkContext } from './domain'
+import { allTimeEntryActivities, requiresWorkSiteNumber } from './domain'
 import { parseRDO } from './rdoParser'
 import type { ParsedRDODay } from './rdoParser'
 import type { TimeEntryValidationErrors } from './types'
@@ -41,7 +41,8 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
   const [rdoStatus, setRdoStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle')
   const [rdoMessage, setRdoMessage] = useState<string | null>(null)
   const [mostrarTodosDias, setMostrarTodosDias] = useState(false)
-  const activityOptions = entryMode === 'rdo' ? activityOptionsByWorkContext.field : activityOptionsByWorkContext.corporate
+  const activityOptions = allTimeEntryActivities
+  const activityRequiresWorkSiteNumber = entryMode === 'rdo' || requiresWorkSiteNumber(values.activityId)
   const hasExtractedRdoDays = extractedRdoDays.length > 0
   const rdoSummary = extractedRdoDays
     .slice(0, 4)
@@ -149,11 +150,19 @@ export function TimeEntryFields({ values, errors, maxDate, allowBatchMode = true
             )}
           </div>
           <div className="md:col-span-2">
-            <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra</label>
+            <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra{activityRequiresWorkSiteNumber ? ' *' : ''}</label>
             <input id="work-site-number" name="numeroObra" type="text" value={values.numeroObra} onChange={(event) => onChange('numeroObra', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.numeroObra)} aria-describedby={errors.numeroObra ? 'work-site-number-error' : undefined} />
             <FieldError id="work-site-number-error" message={errors.numeroObra} />
           </div>
         </>
+      )}
+
+      {entryMode === 'manual' && activityRequiresWorkSiteNumber && (
+        <div className="md:col-span-2">
+          <label htmlFor="work-site-number" className="text-sm font-bold ui-text">Número da obra *</label>
+          <input id="work-site-number" name="numeroObra" type="text" value={values.numeroObra} onChange={(event) => onChange('numeroObra', event.target.value)} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldClassName} aria-invalid={Boolean(errors.numeroObra)} aria-describedby={errors.numeroObra ? 'work-site-number-error' : undefined} />
+          <FieldError id="work-site-number-error" message={errors.numeroObra} />
+        </div>
       )}
 
       <div>

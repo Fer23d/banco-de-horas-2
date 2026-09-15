@@ -13,21 +13,29 @@ export const NORMAL_WORKDAY_MINUTES = 8 * 60
 export const fieldWorkActivities = [
   { id: 'field-travel', name: 'Viagem', active: true },
   { id: 'field-services', name: 'Serviços em campo', active: true },
-  { id: 'field-office-support', name: 'Serviços em escritório (preparação/treinamento/relatórios)', active: true },
-  { id: 'field-non-deducted-day-off', name: 'Folga de campo não descontada', active: true },
+  { id: 'field-office-support', name: 'Serviços em escritório (preparação/treinamento da obra/integracao/relatórios)', active: true },
+  { id: 'field-non-deducted-day-off', name: 'Folga de campo não descontada devido a obra', active: true },
 ] as const
 
 export const corporateActivities = [
   { id: 'corporate-vacation-or-no-service', name: 'Férias ou não prestação de serviço', active: true },
-  { id: 'corporate-day-off', name: 'Folga corporativa', active: true },
+  { id: 'corporate-medical-leave', name: 'Atestado / afastamento', active: true },
+  { id: 'corporate-day-off', name: 'Folga coorporativa (ex.: 24/12 e 31/12)', active: true },
   { id: 'corporate-deducted-day-off', name: 'Folga descontada', active: true },
-  { id: 'corporate-training-event', name: 'Treinamento / evento corporativo', active: true },
+  { id: 'corporate-training-event', name: 'ASO, Treinamento interno ou evento coorporativo', active: true },
+  { id: 'corporate-back-office', name: 'Atividades gerenciais de escritório (back-office sem projeto)', active: true },
 ] as const
 
 export const activityOptionsByWorkContext = {
   field: fieldWorkActivities,
   corporate: corporateActivities,
 } as const
+
+export const allTimeEntryActivities = [...fieldWorkActivities, ...corporateActivities] as const
+
+export function requiresWorkSiteNumber(activityId: string) {
+  return fieldWorkActivities.some((activity) => activity.id === activityId)
+}
 
 export function hoursAndMinutesToMinutes(hours: number, minutes: number) {
   return hours * 60 + minutes
@@ -82,13 +90,8 @@ export function validateTimeEntry(
   const projectCode = data.projectCode.trim()
   if (!projectCode) errors.projectCode = 'Informe o número do projeto.'
   else if (projectCode.length > MAX_PROJECT_CODE_LENGTH) errors.projectCode = 'O número do projeto deve ter no máximo 80 caracteres.'
-  const allowedContextActivities = data.emObra ? fieldWorkActivities : corporateActivities
-  if (!allowedContextActivities.some((activity) => activity.id === data.activityId && activity.active)) {
-    errors.activityId = data.emObra
-      ? 'Selecione uma atividade de obra.'
-      : 'Selecione uma atividade corporativa.'
-  }
-  if (data.emObra && !data.numeroObra?.trim()) errors.numeroObra = 'Informe o número da obra.'
+  if (!allTimeEntryActivities.some((activity) => activity.id === data.activityId && activity.active)) errors.activityId = 'Selecione uma atividade válida.'
+  if (requiresWorkSiteNumber(data.activityId) && !data.numeroObra?.trim()) errors.numeroObra = 'Informe o número da obra para esta atividade.'
   if (data.disciplineCode !== 'C') errors.disciplineCode = 'A disciplina deve permanecer como C – Campo.'
   if (!isValidDuration(data.durationMinutes)) errors.durationMinutes = 'A duração deve ser maior que zero e de no máximo 24 horas.'
   if (data.overtimeMinutes !== undefined && !Number.isInteger(data.overtimeMinutes)) errors.overtimeMinutes = 'Informe horas extras em horas e minutos inteiros.'

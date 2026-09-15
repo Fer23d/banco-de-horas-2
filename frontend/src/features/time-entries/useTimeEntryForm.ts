@@ -4,7 +4,7 @@ import { entryDateAvailabilityService } from '../../services/entryDateAvailabili
 import { timeEntryService } from '../../services/timeEntryService'
 import type { ParsedRDODay } from './rdoParser'
 import type { CreateTimeEntryData, TimeEntry, TimeEntryValidationErrors } from './types'
-import { expandTimeEntryDates, NORMAL_WORKDAY_MINUTES } from './domain'
+import { expandTimeEntryDates, NORMAL_WORKDAY_MINUTES, requiresWorkSiteNumber } from './domain'
 import { getCorporateToday, isIsoDate, isWeekend } from '../../shared/utils/date'
 import { useSession } from '../session/useSession'
 import { areValidDurationParts, hoursAndMinutesToMinutes, validateTimeEntry } from './domain'
@@ -169,14 +169,15 @@ export function useTimeEntryForm({ initialDate, entryId, duplicateId }: { initia
       ? expandTimeEntryDates(values.startDate, effectiveEndDate, effectiveWeekdaysOnly)
       : [values.startDate]
     const classifiedHours = calculateClassifiedDuration(effectiveStartDate)
+    const activityRequiresWorkSiteNumber = values.emObra || requiresWorkSiteNumber(values.activityId)
     const data: CreateTimeEntryData = {
       entryDate: effectiveStartDate,
       endDate: effectiveEndDate,
       weekdaysOnly: effectiveWeekdaysOnly,
       emObra: values.emObra,
-      numeroObra: values.emObra ? values.numeroObra : undefined,
+      numeroObra: activityRequiresWorkSiteNumber ? values.numeroObra : undefined,
       clientId: values.clientId,
-      projectCode: values.emObra ? values.numeroObra : values.projectCode,
+      projectCode: activityRequiresWorkSiteNumber ? values.numeroObra : values.projectCode,
       activityId: values.activityId,
       disciplineCode: 'C',
       durationMinutes: hasExtractedRdoDays

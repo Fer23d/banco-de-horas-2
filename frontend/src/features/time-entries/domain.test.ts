@@ -113,6 +113,13 @@ describe('validações e formatação', () => {
     expect(field.disciplineCode).toBeUndefined()
   })
 
+  it('exige número da obra apenas para atividades de campo', () => {
+    const fieldErrors = validateTimeEntry({ ...validData, activityId: 'field-travel', emObra: false, numeroObra: '' }, demoClients, demoActivities)
+    const corporateErrors = validateTimeEntry({ ...validData, activityId: 'corporate-medical-leave', emObra: false, numeroObra: '' }, demoClients, demoActivities)
+    expect(fieldErrors.numeroObra).toBe('Informe o número da obra para esta atividade.')
+    expect(corporateErrors.numeroObra).toBeUndefined()
+  })
+
   it('exige detalhamento não vazio', () => {
     expect(validateTimeEntry({ ...validData, details: '   ' }, demoClients, demoActivities).details).toBe('Descreva o trabalho realizado.')
   })
