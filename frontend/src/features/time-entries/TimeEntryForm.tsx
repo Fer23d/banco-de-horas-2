@@ -105,11 +105,6 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
               <span className="mt-1 block text-xs">Informe os dados e, se necessário, prepare uma estrutura de RDO.</span>
             </button>
           </div>
-          {entryMode === 'manual' && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <CreateRdoButton values={controller.values} />
-            </div>
-          )}
         </fieldset>
       )}
 
@@ -243,6 +238,7 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
           {controller.isSubmitting ? 'Salvando…' : submitLabel}
         </button>
       </div>
+      <CreateRdoButton values={controller.values} />
     </form>
   )
 }
