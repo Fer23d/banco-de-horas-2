@@ -11,7 +11,7 @@ type BalanceSummaryCardsProps = {
 
 export function BalanceSummaryCards({ todaySummary, filteredSummary, totalSummary, periodLabel }: BalanceSummaryCardsProps) {
   return (
-    <section aria-label="Saldos reais do colaborador">
+    <section className="tour-saldo" aria-label="Saldos reais do colaborador">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryCard label="Saldo de hoje" value={formatSignedMinutes(todaySummary.balanceMinutes)} helper="Resultado real até o dia corporativo atual." tone={todaySummary.balanceMinutes >= 0 ? 'positive' : 'warning'} />
         <SummaryCard label={periodLabel} value={formatSignedMinutes(filteredSummary.realBalanceMinutes)} helper={`${formatMinutes(filteredSummary.workedMinutes)} apontadas no período.`} tone={filteredSummary.realBalanceMinutes >= 0 ? 'positive' : 'warning'} />

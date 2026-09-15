@@ -50,7 +50,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         </section>
       )}
 
-      <nav className="flex-1 space-y-2 p-4" aria-label="Navegação do colaborador">
+      <nav className="tour-menu flex-1 space-y-2 p-4" aria-label="Navegação do colaborador">
         {collaboratorNavigation.map((item) => (
           <NavLink
             key={item.path}
@@ -58,7 +58,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             end={item.path === '/colaborador'}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl border-l-4 px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-text)] ${
+              `flex items-center gap-3 rounded-xl border-l-4 px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-text)] ${item.path === '/colaborador/apontamentos/novo' ? 'tour-btn-apontar' : ''} ${
                 isActive ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'border-transparent text-[var(--color-sidebar-text-muted)] hover:bg-[var(--color-navigation-hover)] hover:text-[var(--color-sidebar-text)]'
               }`
             }
@@ -66,7 +66,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             {({ isActive }) => (
               <>
                 <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs ${isActive ? 'bg-[var(--color-navigation-active-detail)] text-[var(--color-primary)]' : 'bg-[var(--color-sidebar-surface)]'}`}>{item.shortLabel}</span>
-                <span className="flex-1">{item.label}</span>
+                <span className={`flex-1 ${item.path === '/colaborador/avisos' ? 'tour-avisos' : ''}`}>{item.label}</span>
                 {isActive && <span className="text-[10px] font-extrabold uppercase" aria-label="Página atual">Atual</span>}
               </>
             )}

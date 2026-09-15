@@ -5,5 +5,6 @@ export const collaboratorNavigation: NavigationItem[] = [
   { label: 'Novo apontamento', shortLabel: 'NA', path: '/colaborador/apontamentos/novo' },
   { label: 'Histórico', shortLabel: 'HI', path: '/colaborador/historico' },
   { label: 'Ausências', shortLabel: 'AU', path: '/colaborador/folgas' },
+  { label: 'Quadro de Avisos', shortLabel: 'QA', path: '/colaborador/avisos' },
   { label: 'Meu perfil', shortLabel: 'MP', path: '/colaborador/perfil' },
 ]
