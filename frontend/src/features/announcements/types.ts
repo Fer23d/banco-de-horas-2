@@ -9,3 +9,5 @@ export interface Comunicado {
   tipo: ComunicadoTipo
   oculto_por?: string[]
 }
+
+export const ANNOUNCEMENTS_STORAGE_KEY = 'avisos_sistema_banco2'

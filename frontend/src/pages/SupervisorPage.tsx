@@ -16,8 +16,9 @@ import { useSession } from '../features/session/useSession'
 import { formatMinutes } from '../features/time-entries/domain'
 import { getCorporateToday, getMonthKey, getMonthRange, isIsoDate } from '../shared/utils/date'
 import { getAllColaboradores } from '../data/mockDEP'
+import { AvisosPage } from './AvisosPage'
 
-type ActiveView = 'entries' | 'requests' | 'history' | 'profile'
+type ActiveView = 'entries' | 'requests' | 'history' | 'profile' | 'announcements'
 type EntryStatusFilter = 'ALL' | SupervisorPendingEntry['status']
 type RejectionTarget =
   | { type: 'entry', item: SupervisorPendingEntry }
@@ -50,6 +51,7 @@ const supervisorNavigation: Array<{ id: ActiveView, label: string, shortLabel: s
   { id: 'requests', label: 'Solicitações', shortLabel: 'SO' },
   { id: 'history', label: 'Histórico', shortLabel: 'HI' },
   { id: 'profile', label: 'Meu Perfil', shortLabel: 'MP' },
+  { id: 'announcements', label: 'Avisos', shortLabel: 'AV' },
 ]
 
 function readSupervisorProfile(): SupervisorProfile {
@@ -628,6 +630,7 @@ export function SupervisorPage() {
 
             {activeView === 'history' && <HistoryView entries={dashboard.entries} />}
             {activeView === 'profile' && <SupervisorProfileView profile={supervisorProfile} onSave={updateSupervisorProfile} />}
+            {activeView === 'announcements' && <AvisosPage />}
           </div>
         </div>
       </section>

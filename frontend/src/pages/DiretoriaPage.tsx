@@ -118,6 +118,10 @@ function DiretoriaSidebar({ onSignOut }: { onSignOut: () => void }) {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-sidebar-surface)] text-xs">EQ</span>
           <span className="flex-1">Equipes</span>
         </NavLink>
+        <NavLink to="/avisos" className={linkClass}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-sidebar-surface)] text-xs">AV</span>
+          <span className="flex-1">Avisos</span>
+        </NavLink>
       </nav>
       <div className="border-t border-[var(--color-sidebar-border)] p-4">
         <button type="button" onClick={onSignOut} className="w-full rounded-xl border border-[var(--color-sidebar-border)] px-4 py-3 text-left text-sm font-bold text-[var(--color-sidebar-text)] hover:bg-[var(--color-navigation-hover)]">
