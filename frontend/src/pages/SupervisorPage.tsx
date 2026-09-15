@@ -7,6 +7,7 @@ import { BrandMark } from '../components/BrandMark'
 import { StatusBadge } from '../components/StatusBadge'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { BalancePeriodFilter } from '../features/calendar/BalancePeriodFilter'
+import { ManagerCalendar } from '../features/calendar/ManagerCalendar'
 import { RejectionDialog } from '../features/supervisor/RejectionDialog'
 import { SupervisorEntriesTable } from '../features/supervisor/SupervisorEntriesTable'
 import { SupervisorRequestsTable } from '../features/supervisor/SupervisorRequestsTable'
@@ -497,6 +498,12 @@ export function SupervisorPage() {
 
             {activeView === 'entries' && (
               <>
+                <ManagerCalendar
+                  entries={dashboard.entries}
+                  collaborators={dashboard.collaborators}
+                  onApprove={(entry) => void dashboard.approve(entry)}
+                  onReject={(entry, reason) => void dashboard.reject(entry, reason)}
+                />
                 <BalancePeriodFilter
                   startDate={range.startDate}
                   endDate={range.endDate}

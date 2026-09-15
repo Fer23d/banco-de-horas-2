@@ -7,6 +7,9 @@ import { useSession } from '../features/session/useSession'
 import { TIME_OFF_STORAGE_KEY } from '../services/timeOffService'
 import { TIME_ENTRY_STORAGE_KEY } from '../services/timeEntryService'
 import { getMonthKey } from '../shared/utils/date'
+import { ManagerCalendar } from '../features/calendar/ManagerCalendar'
+import type { SupervisorPendingEntry } from '../features/supervisor/types'
+import { supervisorService } from '../services/supervisorService'
 
 type DiretoriaEntry = {
   id: string
@@ -137,6 +140,8 @@ export function DiretoriaPage() {
   const navigate = useNavigate()
   const [entries, setEntries] = useState<DiretoriaEntry[]>([])
   const [absences, setAbsences] = useState<DiretoriaAbsence[]>([])
+  const [managerEntries, setManagerEntries] = useState<SupervisorPendingEntry[]>([])
+  const [managerCollaborators, setManagerCollaborators] = useState<Array<{ id: string; name: string }>>([])
   const currentMonth = getMonthKey(new Date().toISOString().slice(0, 10))
 
   useEffect(() => {
@@ -150,6 +155,16 @@ export function DiretoriaPage() {
     })
     setEntries(storedEntries)
     setAbsences(storedAbsences)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void Promise.all([supervisorService.listEntries(), supervisorService.listCollaborators()]).then(([loadedEntries, loadedCollaborators]) => {
+      if (!active) return
+      setManagerEntries(loadedEntries)
+      setManagerCollaborators(loadedCollaborators)
+    })
+    return () => { active = false }
   }, [])
 
   const projectHours = useMemo(() => {
@@ -231,6 +246,21 @@ export function DiretoriaPage() {
                 </ResponsiveContainer>
               </div>
             </section>
+
+            <ManagerCalendar
+              entries={managerEntries}
+              collaborators={managerCollaborators}
+              onApprove={(entry) => {
+                void supervisorService.approve(entry.id, session?.id ?? 'director').then((updated) => {
+                  setManagerEntries((current) => current.map((item) => item.id === updated.id ? updated : item))
+                })
+              }}
+              onReject={(entry, reason) => {
+                void supervisorService.reject(entry.id, session?.id ?? 'director', reason).then((updated) => {
+                  setManagerEntries((current) => current.map((item) => item.id === updated.id ? updated : item))
+                })
+              }}
+            />
           </div>
         </main>
       </div>

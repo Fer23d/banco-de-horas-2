@@ -5,6 +5,16 @@ import type { DailySummary } from './types'
 import { CalendarLegend } from './CalendarLegend'
 import { calendarStatePresentation } from './presentation'
 
+export type CalendarDayPreview = {
+  entryId: string
+  projectCode: string
+  activityName: string
+  status: string
+  collaboratorName: string
+  durationMinutes: number
+  details?: string
+}
+
 type MonthlyCalendarProps = {
   monthKey: string
   selectedDate: string
@@ -12,6 +22,8 @@ type MonthlyCalendarProps = {
   onMonthChange: (monthKey: string) => void
   onSelectDate: (date: string) => void
   onOpenDate?: (date: string, hasEntries: boolean) => void
+  dayPreviews?: Record<string, CalendarDayPreview>
+  onManagerDayOpen?: (preview: CalendarDayPreview) => void
 }
 
 const weekdayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -22,7 +34,7 @@ function monthLabel(monthKey: string) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, onSelectDate, onOpenDate }: MonthlyCalendarProps) {
+export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, onSelectDate, onOpenDate, dayPreviews, onManagerDayOpen }: MonthlyCalendarProps) {
   const summaries = new Map(days.map((day) => [day.date, day]))
   const gridCells = getMonthGridCells(monthKey)
 
@@ -48,6 +60,7 @@ export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, o
           const summary = summaries.get(date)
           const state = summary?.visualState ?? 'NO_SCHEDULE'
           const presentation = calendarStatePresentation[state]
+          const preview = dayPreviews?.[date]
           const worked = formatMinutes(summary?.workedMinutes ?? 0)
           const expected = formatMinutes(summary?.expectedMinutes ?? 0)
           const hasEntries = (summary?.workedMinutes ?? 0) > 0
@@ -58,7 +71,10 @@ export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, o
               type="button"
               data-calendar-day={date}
               data-calendar-state={state}
-              onClick={() => onSelectDate(date)}
+              onClick={() => {
+                onSelectDate(date)
+                if (preview) onManagerDayOpen?.(preview)
+              }}
               onDoubleClick={() => onOpenDate?.(date, hasEntries)}
               aria-label={ariaLabel}
               aria-pressed={selectedDate === date}
@@ -71,6 +87,11 @@ export function MonthlyCalendar({ monthKey, selectedDate, days, onMonthChange, o
                 <span className="sr-only sm:not-sr-only">{presentation.label}</span>
               </span>
               <span className="mt-1 block text-[9px] font-semibold sm:text-[10px]">{worked}/{expected}</span>
+              {preview && (
+                <span className="mt-1 block truncate text-[9px] font-bold leading-tight text-[var(--color-primary)] sm:text-[10px]" title={`${preview.projectCode || preview.activityName} · ${preview.status}`}>
+                  {preview.projectCode || preview.activityName}
+                </span>
+              )}
             </button>
           )
         })}

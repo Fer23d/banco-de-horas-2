@@ -2,10 +2,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { DailySummary } from './types'
 import { CalendarLegend } from './CalendarLegend'
+import { ManagerCalendar } from './ManagerCalendar'
 import { MonthlyCalendar } from './MonthlyCalendar'
 import { DayDetails } from './DayDetails'
 import type { DayApproval } from '../approvals/types'
+import type { SupervisorPendingEntry } from '../supervisor/types'
 import { calendarStatePresentation } from './presentation'
+import { getCorporateToday } from '../../shared/utils/date'
 
 function day(date: string, visualState: DailySummary['visualState'], workedMinutes = 0, expectedMinutes = 480): DailySummary {
   return {
@@ -141,5 +144,45 @@ describe('calendário acessível', () => {
 
     expect(markup).toContain('Aprovação não aplicável')
     expect(markup).toContain('data-status-tone="neutral"')
+  })
+
+  it('preserva a visão do colaborador e expõe o calendário gerencial para supervisores', () => {
+    const entry: SupervisorPendingEntry = {
+      id: 'entry-manager-1',
+      collaboratorId: 'demo-collaborator-001',
+      collaboratorName: 'Rafael',
+      entryDate: getCorporateToday(),
+      projectCode: 'SM&A-001',
+      durationMinutes: 480,
+      status: 'PENDING',
+      activityName: 'Viagem',
+      details: 'Atividade de campo',
+    }
+
+    const collaboratorMarkup = renderToStaticMarkup(
+      <MonthlyCalendar
+        monthKey="2026-07"
+        selectedDate="2026-07-20"
+        days={[day('2026-07-20', 'COMPLETE', 480)]}
+        onMonthChange={vi.fn()}
+        onSelectDate={vi.fn()}
+      />,
+    )
+    const managerMarkup = renderToStaticMarkup(
+      <ManagerCalendar
+        entries={[entry]}
+        collaborators={[{ id: 'demo-collaborator-001', name: 'Rafael' }]}
+        onApprove={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    )
+
+    expect(collaboratorMarkup).not.toContain('Calendário da equipe')
+    expect(collaboratorMarkup).not.toContain('Todos da equipe')
+    expect(collaboratorMarkup).not.toContain('Aprovar')
+    expect(managerMarkup).toContain('Calendário da equipe')
+    expect(managerMarkup).toContain('Todos da equipe')
+    expect(managerMarkup).toContain('SM')
+    expect(managerMarkup).toContain('data-calendar-day')
   })
 })
