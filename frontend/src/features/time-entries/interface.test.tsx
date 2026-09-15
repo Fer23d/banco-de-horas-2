@@ -31,7 +31,7 @@ describe('markup acessível de apontamentos e histórico', () => {
 
   it('preserva o texto do número do projeto e exibe atividades corporativas no modo manual', () => {
     const markup = renderToStaticMarkup(<TimeEntryFields values={values} errors={{}} maxDate="2026-07-20" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
-    expect(markup).toContain('* Escreva exatamente a numeração do projeto atual, caso já possua.')
+    expect(markup).toContain('Número do projeto / obra')
     expect(markup).toContain('Férias ou não prestação de serviço')
     expect(markup).toContain('ASO, Treinamento interno ou evento coorporativo')
     expect(markup).toContain('Se a data final for diferente')
@@ -39,13 +39,12 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).not.toContain('Documento (LD)')
   })
 
-  it('oculta número do projeto e exibe número da obra no modo RDO', () => {
+  it('usa o mesmo campo para número do projeto e da obra no modo RDO', () => {
     const markup = renderToStaticMarkup(<TimeEntryFields values={{ ...values, emObra: true }} errors={{}} maxDate="2026-07-20" entryMode="rdo" extractedRdoDays={[]} onRdoDaysChange={vi.fn()} onChange={vi.fn()} />)
-    expect(markup).toContain('for="work-site-number"')
-    expect(markup).toContain('Número da obra')
+    expect(markup).toContain('for="project-code"')
+    expect(markup).toContain('Número do projeto / obra')
     expect(markup).toContain('Serviços em campo')
-    expect(markup).not.toContain('for="project-code"')
-    expect(markup).not.toContain('Número do projeto')
+    expect(markup).not.toContain('for="work-site-number"')
   })
 
   it('oferece filtros de período e dados individuais com labels', () => {
