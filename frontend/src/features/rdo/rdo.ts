@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf'
+import { AlignmentType, Document, ImageRun, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx'
+import { saveAs } from 'file-saver'
 import { areValidDurationParts, formatMinutes } from '../time-entries/domain'
 import { formatDatePtBr, isIsoDate } from '../../shared/utils/date'
 
@@ -10,6 +12,9 @@ type RdoFormData = {
   activityName?: string
   hours: string
   minutes: string
+  startTime?: string
+  endTime?: string
+  funcaoContrato?: string
   details: string
 }
 type RdoContext = { name: string; jobTitle?: string; clientName?: string; activityName?: string }
@@ -24,8 +29,10 @@ export function buildRdoData(values: RdoFormData, context: RdoContext) {
   return {
     contractor: 'SM&A Sistemas Elétricos e Automação',
     contractorNumber: '',
-    date: entryDate, professional: context.name, category: context.jobTitle ?? '',
+    date: entryDate, professional: context.name, category: values.funcaoContrato?.trim() || context.jobTitle || '',
     duration: formatMinutes(hours * 60 + minutes), object: '',
+    startTime: values.startTime || '--:--', endTime: values.endTime || '--:--',
+    lunchBreak: '1 hora de almoço', signatureName: context.name,
     valeNumber: '',
     discipline: 'C – Campo',
     documentType: '', client: values.clientName ?? context.clientName ?? '',
@@ -36,6 +43,10 @@ export function buildRdoData(values: RdoFormData, context: RdoContext) {
 export function rdoFileName(data: RdoData) {
   const safe = (value: string) => [...value].map((char) => char.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(char) ? '_' : char).join('').replace(/[. ]+$/g, '').slice(0, 70)
   return ['RDO', data.date, safe(data.projectCode), safe(data.valeNumber)].filter(Boolean).join('_') + '.pdf'
+}
+
+export function rdoWordFileName(data: RdoData) {
+  return rdoFileName(data).replace(/\.pdf$/i, '.docx')
 }
 
 export function generateRdo(data: RdoData, logo: Uint8Array) {
@@ -125,12 +136,18 @@ export function generateRdo(data: RdoData, logo: Uint8Array) {
       { label: 'Categoria / Função', value: data.category, width: 100 },
       { label: 'Total de horas', value: data.duration, width: width - 227 },
     ])
+    y = drawRow(y, [
+      { label: 'Hora de início', value: data.startTime, width: 64 },
+      { label: 'Hora de fim', value: data.endTime, width: 64 },
+      { label: 'Pausa', value: data.lunchBreak, width: width - 128 },
+    ])
     return y
   }
 
   const details = data.details ? pdf.splitTextToSize(data.details, width - 6) as string[] : []
   const pending = details.length ? [...details] : [' ']
   let page = 0
+  let lastContentY = 0
   do {
     if (page > 0) pdf.addPage('a4', 'landscape')
     drawHeader()
@@ -139,7 +156,7 @@ export function generateRdo(data: RdoData, logo: Uint8Array) {
     y = drawRow(y, [
       { label: 'ATIVIDADE REALIZADA', value: data.activity, width },
     ])
-    const availableLines = Math.max(1, Math.floor((bottom - y - 9) / lineHeight))
+    const availableLines = Math.max(1, Math.floor((bottom - y - 30) / lineHeight))
     const pageLines = pending.splice(0, availableLines)
     const detailHeight = Math.max(18, 7 + pageLines.length * lineHeight)
     pdf.setDrawColor(75)
@@ -152,8 +169,17 @@ export function generateRdo(data: RdoData, logo: Uint8Array) {
     pdf.setFontSize(8)
     pdf.setTextColor(20)
     pdf.text(pageLines, margin + 2, y + 8)
+    lastContentY = y + detailHeight
     page += 1
   } while (pending.length)
+
+  const signatureY = Math.min(lastContentY + 14, bottom - 10)
+  pdf.setDrawColor(75)
+  pdf.line(margin + width / 2 - 35, signatureY, margin + width / 2 + 35, signatureY)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(8)
+  pdf.setTextColor(20)
+  pdf.text(data.signatureName, margin + width / 2, signatureY + 5, { align: 'center' })
 
   const pages = pdf.getNumberOfPages()
   for (let i = 1; i <= pages; i++) {
@@ -177,4 +203,49 @@ export function downloadRdo(pdf: jsPDF, name: string) {
   document.body.appendChild(link)
   link.click(); link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+function wordCell(label: string, value: string) {
+  return new TableCell({
+    children: [
+      new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 18, color: '505050' })] }),
+      new Paragraph({ children: [new TextRun({ text: value || ' ', size: 22 })] }),
+    ],
+  })
+}
+
+export async function generateRdoWord(data: RdoData, logo: Uint8Array) {
+  const document = new Document({
+    sections: [{
+      properties: {},
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new ImageRun({ data: logo, transformation: { width: 120, height: 52 }, type: 'jpg' })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 180 },
+          children: [new TextRun({ text: 'RELATÓRIO DIÁRIO DE OBRA', bold: true, size: 28, color: '1F3A52' })],
+        }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({ children: [wordCell('Contratada', data.contractor), wordCell('Cliente', data.client), wordCell('Data', formatDatePtBr(data.date))] }),
+            new TableRow({ children: [wordCell('Número do projeto', data.projectCode), wordCell('Profissional', data.professional), wordCell('Categoria / Função', data.category)] }),
+            new TableRow({ children: [wordCell('Hora de início', data.startTime), wordCell('Hora de fim', data.endTime), wordCell('Total de horas', data.duration)] }),
+          ],
+        }),
+        new Paragraph({ spacing: { before: 180 }, children: [new TextRun({ text: 'ATIVIDADE REALIZADA', bold: true, size: 18, color: '505050' })] }),
+        new Paragraph({ children: [new TextRun({ text: data.activity || ' ', size: 22 })] }),
+        new Paragraph({ spacing: { before: 180 }, children: [new TextRun({ text: 'DETALHAMENTO DAS ATIVIDADES', bold: true, size: 18, color: '505050' })] }),
+        new Paragraph({ children: [new TextRun({ text: data.details || ' ', size: 22 })] }),
+        new Paragraph({ spacing: { before: 180 }, children: [new TextRun({ text: data.lunchBreak, italics: true, size: 20 })] }),
+        new Paragraph({ spacing: { before: 500 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: '___________________________', size: 22 })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: data.signatureName, size: 22 })] }),
+      ],
+    }],
+  })
+  const blob = await Packer.toBlob(document)
+  saveAs(blob, rdoWordFileName(data))
 }

@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { HistoryFilters } from '../history/HistoryFilters'
 import { SessionContext } from '../session/sessionContext'
+import { CreateRdoButton } from '../rdo/CreateRdoButton'
+import { demoCollaborator } from '../../mocks/demoData'
 import type { HistoryFiltersValue } from '../history/useTimeEntryHistory'
 import { TimeEntryFields } from './TimeEntryFields'
 import { TimeEntryForm } from './TimeEntryForm'
@@ -11,7 +13,7 @@ import type { TimeEntryFormValues } from './useTimeEntryForm'
 
 const values: TimeEntryFormValues = {
   startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, emObra: false, numeroObra: '', clientId: '', projectCode: '', activityId: '', disciplineCode: 'C',
-  hours: '', minutes: '', isHoliday: false, hasOvertime: false, overtimeHours: '', overtimeMinutes: '', hasNightHours: false, nightHours: '', nightMinutes: '', hasPartialDayOff: false, partialDayOffHours: '', partialDayOffMinutes: '', details: '', funcaoContrato: '', editReason: '',
+  hours: '', minutes: '', startTime: '', endTime: '', isHoliday: false, hasOvertime: false, overtimeHours: '', overtimeMinutes: '', hasNightHours: false, nightHours: '', nightMinutes: '', hasPartialDayOff: false, partialDayOffHours: '', partialDayOffMinutes: '', details: '', funcaoContrato: '', editReason: '',
 }
 
 const filters: HistoryFiltersValue = {
@@ -81,5 +83,15 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).toContain('role="dialog"')
     expect(markup).toContain('aria-modal="true"')
     expect(markup).toContain('Cancelar apontamento?')
+  })
+
+  it('oferece exportação separada do RDO em PDF e Word', () => {
+    const markup = renderToStaticMarkup(
+      <SessionContext.Provider value={{ session: null, profile: demoCollaborator, isLoading: false, signIn: vi.fn(), signOut: vi.fn() }}>
+        <CreateRdoButton values={values} />
+      </SessionContext.Provider>,
+    )
+    expect(markup).toContain('Gerar RDO (PDF)')
+    expect(markup).toContain('Gerar RDO (Word)')
   })
 })

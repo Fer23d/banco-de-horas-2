@@ -217,6 +217,18 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
         <FieldError id="partial-day-off-error" message={controller.errors.partialDayOffMinutes} />
       </fieldset>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="start-time" className="text-sm font-bold ui-text">Hora de início</label>
+          <input id="start-time" name="startTime" type="time" value={controller.values.startTime} onChange={(event) => controller.setField('startTime', event.target.value)} className={fieldClassName} aria-describedby="time-help" />
+        </div>
+        <div>
+          <label htmlFor="end-time" className="text-sm font-bold ui-text">Hora de fim</label>
+          <input id="end-time" name="endTime" type="time" value={controller.values.endTime} onChange={(event) => controller.setField('endTime', event.target.value)} className={fieldClassName} aria-describedby="time-help" />
+        </div>
+        <p id="time-help" className="text-xs ui-text-subtle sm:col-span-2">Esses horários são usados na geração do RDO e são opcionais no apontamento.</p>
+      </div>
+
       <div>
         <label htmlFor="details" className="text-sm font-bold ui-text">Detalhamento das atividades</label>
         <textarea id="details" name="details" rows={5} value={controller.values.details} onChange={(event) => controller.setField('details', event.target.value)} className={fieldClassName} placeholder="Descreva objetivamente o trabalho realizado" aria-invalid={Boolean(controller.errors.details)} aria-describedby={controller.errors.details ? 'details-error' : 'details-help'} />

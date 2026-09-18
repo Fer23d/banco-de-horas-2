@@ -21,6 +21,8 @@ export type TimeEntryFormValues = {
   disciplineCode: CreateTimeEntryData['disciplineCode'] | ''
   hours: string
   minutes: string
+  startTime: string
+  endTime: string
   isHoliday: boolean
   hasOvertime: boolean
   overtimeHours: string
@@ -48,6 +50,8 @@ const emptyValues = (entryDate: string): TimeEntryFormValues => ({
   disciplineCode: 'C',
   hours: '',
   minutes: '',
+  startTime: '',
+  endTime: '',
   isHoliday: false,
   hasOvertime: false,
   overtimeHours: '',
@@ -76,6 +80,8 @@ function valuesFromEntry(entry: TimeEntry): TimeEntryFormValues {
     disciplineCode: 'C',
     hours: String(Math.floor(entry.durationMinutes / 60)),
     minutes: String(entry.durationMinutes % 60),
+    startTime: '',
+    endTime: '',
     isHoliday: entry.isHoliday,
     hasOvertime: entry.overtimeMinutes > 0,
     overtimeHours: entry.overtimeMinutes > 0 ? String(Math.floor(entry.overtimeMinutes / 60)) : '',
