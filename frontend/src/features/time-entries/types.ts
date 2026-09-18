@@ -21,6 +21,7 @@ export interface TimeEntry {
   nightMinutes: number
   partialDayOffMinutes: number
   details: string
+  funcaoContrato?: string
   assignmentSnapshot: AssignmentSnapshot | null
   status: TimeEntryStatus
   version: number
@@ -41,6 +42,7 @@ export type CreateTimeEntryData = Pick<
   | 'disciplineCode'
   | 'durationMinutes'
   | 'details'
+  | 'funcaoContrato'
 > & {
   emObra?: boolean
   numeroObra?: string

@@ -54,6 +54,7 @@ const validData: CreateTimeEntryData = {
   disciplineCode: 'C',
   durationMinutes: 60,
   details: 'Teste de persistência',
+  funcaoContrato: 'Engenheiro de campo',
 }
 
 function v2Entry(overrides: Record<string, unknown> = {}) {
@@ -495,6 +496,7 @@ describe('comandos e consultas de apontamento', () => {
     await buildService(storage).create(collaboratorId, validData)
     const [reloaded] = await buildService(storage).listByDate(collaboratorId, validData.entryDate)
     expect(reloaded.projectCode).toBe(validData.projectCode)
+    expect(reloaded.funcaoContrato).toBe(validData.funcaoContrato)
   })
 
   it('registra auditoria para criação, edição, duplicação e cancelamento', async () => {

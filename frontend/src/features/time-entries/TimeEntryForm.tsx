@@ -224,6 +224,12 @@ export function TimeEntryForm({ entryId }: { entryId?: string }) {
         <FieldError id="details-error" message={controller.errors.details} />
       </div>
 
+      <div>
+        <label htmlFor="funcao-contrato" className="text-sm font-bold ui-text">Função do profissional de acordo com o contrato do cliente final</label>
+        <input id="funcao-contrato" name="funcaoContrato" type="text" value={controller.values.funcaoContrato} onChange={(event) => controller.setField('funcaoContrato', event.target.value)} className={fieldClassName} placeholder="Informe a função conforme o contrato" aria-describedby="funcao-contrato-help" />
+        <p id="funcao-contrato-help" className="mt-1.5 text-xs ui-text-subtle">Preencher a categoria conforme EAP do plano de trabalho do cliente final ou instrução do gestor.</p>
+      </div>
+
       {controller.mode === 'EDIT' && (
         <div>
           <label htmlFor="edit-reason" className="text-sm font-bold ui-text">Motivo da edição</label>

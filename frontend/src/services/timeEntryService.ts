@@ -107,6 +107,7 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
   const numeroObra = data.numeroObra?.trim()
   const projectCode = data.projectCode.trim()
   const details = data.details.trim()
+  const funcaoContrato = data.funcaoContrato?.trim()
   const needsWorkSiteNumber = emObra || requiresWorkSiteNumber(data.activityId)
   if (!isIsoDate(data.entryDate)) throw new Error('Informe uma data válida.')
   if (data.endDate && !isIsoDate(data.endDate)) throw new Error('Informe uma data final válida.')
@@ -126,6 +127,7 @@ function normalizeCreateData(data: CreateTimeEntryData): CreateTimeEntryData {
     numeroObra: needsWorkSiteNumber ? numeroObra : undefined,
     projectCode,
     details,
+    funcaoContrato: funcaoContrato || undefined,
     dayType: resolveDayType(data),
     isHoliday: Boolean(data.isHoliday),
     overtimeMinutes: normalizeOptionalMinutes(data.overtimeMinutes),
@@ -373,6 +375,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       nightMinutes: normalized.nightMinutes ?? 0,
       partialDayOffMinutes: normalized.partialDayOffMinutes ?? 0,
       details: normalized.details,
+      funcaoContrato: normalized.funcaoContrato,
       assignmentSnapshot,
       status: 'ACTIVE',
       version: 1,
@@ -456,6 +459,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       nightMinutes: normalized.nightMinutes ?? entry.nightMinutes,
       partialDayOffMinutes: normalized.partialDayOffMinutes ?? entry.partialDayOffMinutes,
       details: normalized.details,
+      funcaoContrato: normalized.funcaoContrato,
       assignmentSnapshot,
       status: 'ACTIVE',
       version: 1,

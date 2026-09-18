@@ -1,14 +1,17 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { HistoryFilters } from '../history/HistoryFilters'
+import { SessionContext } from '../session/sessionContext'
 import type { HistoryFiltersValue } from '../history/useTimeEntryHistory'
 import { TimeEntryFields } from './TimeEntryFields'
+import { TimeEntryForm } from './TimeEntryForm'
 import type { TimeEntryFormValues } from './useTimeEntryForm'
 
 const values: TimeEntryFormValues = {
   startDate: '2026-07-20', endDate: '2026-07-20', weekdaysOnly: true, emObra: false, numeroObra: '', clientId: '', projectCode: '', activityId: '', disciplineCode: 'C',
-  hours: '', minutes: '', isHoliday: false, hasOvertime: false, overtimeHours: '', overtimeMinutes: '', hasNightHours: false, nightHours: '', nightMinutes: '', hasPartialDayOff: false, partialDayOffHours: '', partialDayOffMinutes: '', details: '', editReason: '',
+  hours: '', minutes: '', isHoliday: false, hasOvertime: false, overtimeHours: '', overtimeMinutes: '', hasNightHours: false, nightHours: '', nightMinutes: '', hasPartialDayOff: false, partialDayOffHours: '', partialDayOffMinutes: '', details: '', funcaoContrato: '', editReason: '',
 }
 
 const filters: HistoryFiltersValue = {
@@ -37,6 +40,19 @@ describe('markup acessível de apontamentos e histórico', () => {
     expect(markup).toContain('Se a data final for diferente')
     expect(markup).not.toContain('Avanço')
     expect(markup).not.toContain('Documento (LD)')
+  })
+
+  it('renderiza a função contratual conforme a EAP logo após o detalhamento', () => {
+    const markup = renderToStaticMarkup(
+      <SessionContext.Provider value={{ session: null, profile: null, isLoading: false, signIn: vi.fn(), signOut: vi.fn() }}>
+        <MemoryRouter>
+          <TimeEntryForm />
+        </MemoryRouter>
+      </SessionContext.Provider>,
+    )
+    expect(markup).toContain('Função do profissional de acordo com o contrato do cliente final')
+    expect(markup).toContain('Preencher a categoria conforme EAP do plano de trabalho do cliente final ou instrução do gestor.')
+    expect(markup.indexOf('Detalhamento das atividades')).toBeLessThan(markup.indexOf('Função do profissional de acordo com o contrato do cliente final'))
   })
 
   it('usa o mesmo campo para número do projeto e da obra no modo RDO', () => {
