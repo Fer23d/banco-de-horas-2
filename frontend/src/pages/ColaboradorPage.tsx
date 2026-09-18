@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageContainer } from '../components/PageContainer'
 import { DailyEntryList } from '../features/collaborator/DailyEntryList'
@@ -9,7 +9,7 @@ import { DayDetails } from '../features/calendar/DayDetails'
 import { BalancePeriodFilter } from '../features/calendar/BalancePeriodFilter'
 import { useSession } from '../features/session/useSession'
 import { formatMinutes } from '../features/time-entries/domain'
-import { getCorporateToday, getMonthKey, getMonthRange, isIsoDate } from '../shared/utils/date'
+import { getCorporateToday, getMonthKey, getTimesheetCycle, isIsoDate } from '../shared/utils/date'
 
 export function ColaboradorPage() {
   const { profile } = useSession()
@@ -20,14 +20,14 @@ export function ColaboradorPage() {
   const customStart = searchParams.get('start') ?? undefined
   const customEnd = searchParams.get('end') ?? undefined
   const hasCustomRange = Boolean(customStart && customEnd && isIsoDate(customStart) && isIsoDate(customEnd) && customStart <= customEnd)
-  const monthRange = getMonthRange(monthKey)
-  const [range, setRange] = useState({ startDate: customStart ?? monthRange.startDate, endDate: customEnd ?? monthRange.endDate })
+  const cycleRange = useMemo(() => getTimesheetCycle(), [])
+  const [range, setRange] = useState({ startDate: customStart ?? cycleRange.startDate, endDate: customEnd ?? cycleRange.endDate })
   const [rangeError, setRangeError] = useState<string | null>(null)
-  const dashboard = useCollaboratorDashboard(selectedDate, monthKey, hasCustomRange ? customStart : undefined, hasCustomRange ? customEnd : undefined)
+  const dashboard = useCollaboratorDashboard(selectedDate, monthKey, hasCustomRange ? customStart : cycleRange.startDate, hasCustomRange ? customEnd : cycleRange.endDate)
 
   useEffect(() => {
-    if (!customStart || !customEnd) setRange(getMonthRange(monthKey))
-  }, [customEnd, customStart, monthKey])
+    if (!customStart || !customEnd) setRange(cycleRange)
+  }, [customEnd, customStart, cycleRange])
 
   function applyRange() {
     if (!isIsoDate(range.startDate) || !isIsoDate(range.endDate) || range.startDate > range.endDate) {
@@ -40,7 +40,7 @@ export function ColaboradorPage() {
 
   function useCalendarMonth() {
     setRangeError(null)
-    setRange(getMonthRange(monthKey))
+    setRange(cycleRange)
     setSearchParams({ date: selectedDate })
   }
 
@@ -70,12 +70,12 @@ export function ColaboradorPage() {
         {rangeError && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">{rangeError}</p>}
         {dashboard.data && !dashboard.isLoading && (
           <>
-            <BalancePeriodFilter startDate={range.startDate} endDate={range.endDate} isCustomRange={hasCustomRange} onChange={(field, value) => setRange((current) => ({ ...current, [field]: value }))} onApply={applyRange} onClear={useCalendarMonth} />
+            <BalancePeriodFilter startDate={range.startDate} endDate={range.endDate} isCustomRange={hasCustomRange} onChange={(field, value) => setRange((current) => ({ ...current, [field]: value }))} onApply={applyRange} onClear={useCalendarMonth} defaultPeriodLabel="Usar ciclo 16–15" />
             <BalanceSummaryCards
               todaySummary={dashboard.data.todaySummary}
               filteredSummary={dashboard.data.filteredSummary}
               totalSummary={dashboard.data.totalSummary}
-              periodLabel={hasCustomRange ? 'Saldo do intervalo' : 'Saldo do mês'}
+              periodLabel={hasCustomRange ? 'Saldo do intervalo' : 'Saldo do ciclo 16–15'}
             />
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Pendências e ações">

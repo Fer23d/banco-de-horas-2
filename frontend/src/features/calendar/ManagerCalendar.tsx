@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { eachIsoDate, getCorporateToday, getMonthKey, getMonthRange } from '../../shared/utils/date'
+import { eachIsoDate, getCorporateToday, getMonthKey, getMonthRange, isWeekend } from '../../shared/utils/date'
+import { getBaseExpectedMinutes } from '../workloads/domain'
 import { formatMinutes } from '../time-entries/domain'
 import type { SupervisorPendingEntry } from '../supervisor/types'
 import { MonthlyCalendar, type CalendarDayPreview } from './MonthlyCalendar'
@@ -22,14 +23,10 @@ function visualState(expectedMinutes: number, workedMinutes: number, date: strin
   return 'EXCEEDED'
 }
 
-function isWeekendDate(date: string) {
-  const weekday = new Date(`${date}T12:00:00.000Z`).getUTCDay()
-  return weekday === 0 || weekday === 6
-}
-
 function createSummary(date: string, entries: SupervisorPendingEntry[], collaboratorId: string, today: string): DailySummary {
   const selectedEntries = entries.filter((entry) => (collaboratorId === 'Todos' || entry.collaboratorId === collaboratorId) && entry.entryDate === date)
-  const expectedMinutes = isWeekendDate(date) ? 0 : 480
+  const isFieldDay = selectedEntries.some((entry) => entry.emObra)
+  const expectedMinutes = isWeekend(date) ? 0 : isFieldDay ? getBaseExpectedMinutes(date, [], selectedEntries) : 480
   const workedMinutes = selectedEntries.reduce((total, entry) => total + entry.durationMinutes, 0)
   const isFuture = date > today
   const effectiveWorkedMinutes = isFuture ? 0 : workedMinutes

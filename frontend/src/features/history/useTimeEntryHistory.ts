@@ -4,7 +4,7 @@ import { timeEntryService } from '../../services/timeEntryService'
 import type { DayApproval } from '../approvals/types'
 import { isDayApprovalApplicable } from '../approvals/domain'
 import type { DisciplineCode, TimeEntry } from '../time-entries/types'
-import { getCorporateToday, getMonthKey } from '../../shared/utils/date'
+import { getCorporateToday, getMonthKey, getTimesheetCycle } from '../../shared/utils/date'
 import { useSession } from '../session/useSession'
 import {
   getInitialHistoryPagination,
@@ -48,12 +48,13 @@ export type HistoryRow = {
 const today = getCorporateToday()
 function createInitialFilters(focusDate?: string): HistoryFiltersValue {
   const baseDate = focusDate ?? today
+  const cycle = getTimesheetCycle(today)
   return {
-    mode: focusDate ? 'DAY' : 'MONTH',
+    mode: focusDate ? 'DAY' : 'RANGE',
     day: baseDate,
     month: getMonthKey(baseDate),
-    startDate: focusDate ?? `${getMonthKey(today)}-01`,
-    endDate: focusDate ?? today,
+    startDate: focusDate ?? cycle.startDate,
+    endDate: focusDate ?? cycle.endDate,
     clientId: '',
     projectCode: '',
     activityId: '',

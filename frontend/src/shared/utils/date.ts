@@ -64,6 +64,30 @@ export function getMonthKey(value: string) {
   return value.slice(0, 7)
 }
 
+export type TimesheetCycle = {
+  startDate: string
+  endDate: string
+}
+
+/** Returns the active payroll cycle: day 16 through day 15 of the following month. */
+export function getTimesheetCycle(referenceDate: string | Date = getCorporateToday()): TimesheetCycle {
+  const referenceIso = typeof referenceDate === 'string' ? referenceDate : getCorporateToday(referenceDate)
+  if (!isIsoDate(referenceIso)) throw new Error('Data de referência inválida.')
+  const [year, month, day] = referenceIso.split('-').map(Number)
+  if (day >= 16) {
+    const nextMonth = new Date(Date.UTC(year, month, 16, 12))
+    return {
+      startDate: `${year}-${String(month).padStart(2, '0')}-16`,
+      endDate: `${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, '0')}-15`,
+    }
+  }
+  const previousMonth = new Date(Date.UTC(year, month - 2, 16, 12))
+  return {
+    startDate: `${previousMonth.getUTCFullYear()}-${String(previousMonth.getUTCMonth() + 1).padStart(2, '0')}-16`,
+    endDate: `${year}-${String(month).padStart(2, '0')}-15`,
+  }
+}
+
 export function formatDatePtBr(isoDate: string) {
   const [year, month, day] = isoDate.split('-').map(Number)
   if (!year || !month || !day) return isoDate

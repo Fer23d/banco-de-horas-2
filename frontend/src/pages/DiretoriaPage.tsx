@@ -6,7 +6,7 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { useSession } from '../features/session/useSession'
 import { TIME_OFF_STORAGE_KEY } from '../services/timeOffService'
 import { TIME_ENTRY_STORAGE_KEY } from '../services/timeEntryService'
-import { getMonthKey } from '../shared/utils/date'
+import { getTimesheetCycle } from '../shared/utils/date'
 import { ManagerCalendar } from '../features/calendar/ManagerCalendar'
 import type { SupervisorPendingEntry } from '../features/supervisor/types'
 import { supervisorService } from '../services/supervisorService'
@@ -142,7 +142,7 @@ export function DiretoriaPage() {
   const [absences, setAbsences] = useState<DiretoriaAbsence[]>([])
   const [managerEntries, setManagerEntries] = useState<SupervisorPendingEntry[]>([])
   const [managerCollaborators, setManagerCollaborators] = useState<Array<{ id: string; name: string }>>([])
-  const currentMonth = getMonthKey(new Date().toISOString().slice(0, 10))
+  const timesheetCycle = getTimesheetCycle()
 
   useEffect(() => {
     const storedEntries = readJsonArray(TIME_ENTRY_STORAGE_KEY).flatMap((entry) => {
@@ -180,8 +180,8 @@ export function DiretoriaPage() {
       .slice(0, 6)
   }, [entries])
 
-  const monthEntries = entries.filter((entry) => entry.entryDate.startsWith(currentMonth) && entry.status !== 'CANCELLED')
-  const totalMonthHours = monthEntries.reduce((total, entry) => total + entry.durationMinutes / 60, 0)
+  const cycleEntries = entries.filter((entry) => entry.entryDate >= timesheetCycle.startDate && entry.entryDate <= timesheetCycle.endDate && entry.status !== 'CANCELLED')
+  const totalCycleHours = cycleEntries.reduce((total, entry) => total + entry.durationMinutes / 60, 0)
   const activeProjects = new Set(entries.filter((entry) => entry.status !== 'CANCELLED').map((entry) => entry.projectCode)).size
   const pendingAbsences = absences.filter((absence) => absence.status === 'PENDING' || absence.status === 'Pendente').length
 
@@ -217,7 +217,7 @@ export function DiretoriaPage() {
             </section>
 
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores da diretoria">
-              <SummaryCard label="Total de Horas Apontadas (Mês)" value={totalMonthHours > 0 ? totalMonthHours.toFixed(1) : '298'} helper="Horas consolidadas no mês atual" />
+              <SummaryCard label="Total de Horas Apontadas (Ciclo 16–15)" value={totalCycleHours > 0 ? totalCycleHours.toFixed(1) : '298'} helper={`Horas consolidadas de ${timesheetCycle.startDate} a ${timesheetCycle.endDate}`} />
               <SummaryCard label="Projetos Ativos" value={activeProjects || 3} helper="Projetos com apontamentos registrados" />
               <SummaryCard label="Apontamentos Registrados" value={entries.length} helper="Base persistida em localStorage" />
               <SummaryCard label="Pendências Gerais" value={pendingAbsences} helper="Ausências aguardando decisão" />

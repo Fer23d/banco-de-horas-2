@@ -4,6 +4,7 @@ import {
   eachIsoDate,
   getCorporateToday,
   getMonthRange,
+  getTimesheetCycle,
   isIsoDate,
   isWeekend,
 } from './date'
@@ -37,5 +38,11 @@ describe('datas civis no fuso corporativo', () => {
     expect(getMonthRange('2026-02')).toEqual({ startDate: '2026-02-01', endDate: '2026-02-28' })
     expect(isWeekend('2026-07-18')).toBe(true)
     expect(isWeekend('2026-07-20')).toBe(false)
+  })
+
+  it('calcula o ciclo vigente do dia 16 ao dia 15', () => {
+    expect(getTimesheetCycle('2026-09-15')).toEqual({ startDate: '2026-08-16', endDate: '2026-09-15' })
+    expect(getTimesheetCycle('2026-09-16')).toEqual({ startDate: '2026-09-16', endDate: '2026-10-15' })
+    expect(getTimesheetCycle('2026-01-05')).toEqual({ startDate: '2025-12-16', endDate: '2026-01-15' })
   })
 })

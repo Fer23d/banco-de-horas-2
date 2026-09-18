@@ -15,7 +15,7 @@ import type { SupervisorPendingEntry, SupervisorTimeOffRequest } from '../featur
 import { useSupervisorDashboard } from '../features/supervisor/useSupervisorDashboard'
 import { useSession } from '../features/session/useSession'
 import { formatMinutes } from '../features/time-entries/domain'
-import { getCorporateToday, getMonthKey, getMonthRange, isIsoDate } from '../shared/utils/date'
+import { getCorporateToday, getTimesheetCycle, isIsoDate } from '../shared/utils/date'
 import { getAllColaboradores } from '../data/mockDEP'
 import { AvisosPage } from './AvisosPage'
 
@@ -255,11 +255,10 @@ export function SupervisorPage() {
   const navigate = useNavigate()
   const dashboard = useSupervisorDashboard(session?.id)
   const today = getCorporateToday()
-  const monthKey = getMonthKey(today)
-  const monthRange = useMemo(() => getMonthRange(monthKey), [monthKey])
+  const cycleRange = useMemo(() => getTimesheetCycle(today), [today])
   const [activeView, setActiveView] = useState<ActiveView>('entries')
-  const [range, setRange] = useState(monthRange)
-  const [appliedRange, setAppliedRange] = useState(monthRange)
+  const [range, setRange] = useState(cycleRange)
+  const [appliedRange, setAppliedRange] = useState(cycleRange)
   const [rangeError, setRangeError] = useState<string | null>(null)
   const [supervisorProfile, setSupervisorProfile] = useState<SupervisorProfile>(() => readSupervisorProfile())
   const [collaboratorFilter, setCollaboratorFilter] = useState('Todos')
@@ -271,11 +270,11 @@ export function SupervisorPage() {
   const collaboratorOptions = useMemo(() => ['Todos', ...getAllColaboradores()], [])
 
   useEffect(() => {
-    setRange(monthRange)
-    setAppliedRange(monthRange)
-  }, [monthRange])
+    setRange(cycleRange)
+    setAppliedRange(cycleRange)
+  }, [cycleRange])
 
-  const hasCustomRange = appliedRange.startDate !== monthRange.startDate || appliedRange.endDate !== monthRange.endDate
+  const hasCustomRange = appliedRange.startDate !== cycleRange.startDate || appliedRange.endDate !== cycleRange.endDate
 
   const filteredEntries = useMemo(() => dashboard.entries.filter((entry) => {
     const matchesCollaborator = collaboratorFilter === 'ALL' || collaboratorFilter === 'Todos' || entry.collaboratorName === collaboratorFilter || entry.collaboratorId === collaboratorFilter
@@ -336,8 +335,8 @@ export function SupervisorPage() {
 
   function useCalendarMonth() {
     setRangeError(null)
-    setRange(monthRange)
-    setAppliedRange(monthRange)
+    setRange(cycleRange)
+    setAppliedRange(cycleRange)
   }
 
   function updateSupervisorProfile(profile: SupervisorProfile) {
@@ -511,6 +510,7 @@ export function SupervisorPage() {
                   onChange={(field, value) => setRange((current) => ({ ...current, [field]: value }))}
                   onApply={applyRange}
                   onClear={useCalendarMonth}
+                  defaultPeriodLabel="Usar ciclo 16–15"
                 />
 
                 <section className="grid gap-4 md:grid-cols-3" aria-label="Resumo dos apontamentos">

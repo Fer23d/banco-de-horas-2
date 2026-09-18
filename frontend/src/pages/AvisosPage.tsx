@@ -3,6 +3,7 @@ import { useSession } from '../features/session/useSession'
 import { ANNOUNCEMENTS_STORAGE_KEY, type Comunicado, type ComunicadoTipo } from '../features/announcements/types'
 import { PageContainer } from '../components/PageContainer'
 import { CriarAviso } from '../features/announcements/CriarAviso'
+import { useEscalationAlerts } from '../features/announcements/useEscalationAlerts'
 
 const STORAGE_KEY = ANNOUNCEMENTS_STORAGE_KEY
 const defaultAnnouncements: Comunicado[] = [
@@ -26,6 +27,7 @@ export function AvisosPage() {
   const { session } = useSession()
   const [announcements, setAnnouncements] = useState<Comunicado[]>([])
   const userId = session?.id ?? ''
+  const escalationAlerts = useEscalationAlerts()
   useEffect(() => {
     setAnnouncements(readAnnouncements())
     const handleStorage = () => setAnnouncements(readAnnouncements())
@@ -42,6 +44,7 @@ export function AvisosPage() {
   return (
     <PageContainer title="Quadro de Avisos" description="Acompanhe comunicados importantes da Diretoria, do RH e da supervisão da operação." contained={false}>
       <div className="space-y-6"><CriarAviso onCreated={reloadAnnouncements} />
+      {escalationAlerts.map((alert) => <article key={alert.id} className={`rounded-2xl border border-l-4 ui-surface p-5 ${alert.level === 'YELLOW' ? '[border-left-color:#C9A66B]' : alert.level === 'ORANGE' ? '[border-left-color:#D27A44]' : '[border-left-color:#C99393]'}`} role="alert"><p className="text-xs font-bold uppercase tracking-[0.16em] ui-text-subtle">Alerta {alert.level === 'YELLOW' ? 'amarelo' : alert.level === 'ORANGE' ? 'laranja' : 'vermelho'}</p><h2 className="mt-1 text-lg font-extrabold ui-text">{alert.title}</h2><p className="mt-2 text-sm leading-6 ui-text-muted">{alert.message}</p></article>)}
       <section className="space-y-4" aria-labelledby="announcements-title">
         <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-secondary)]">Comunicados</p><h2 id="announcements-title" className="mt-1 text-xl font-extrabold ui-text">Mensagens recentes</h2></div><span className="text-sm text-[var(--color-text-muted)]">{visibleAnnouncements.length} comunicado(s)</span></div>
         <div className="space-y-4">

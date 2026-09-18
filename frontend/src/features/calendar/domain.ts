@@ -55,7 +55,7 @@ function deriveVisualState(
 
 export function calculateDaySummary(input: DaySummaryInput): DailySummary {
   const applicableEvents = input.events.filter((event) => eventApplies(event, input.collaboratorId, input.date))
-  const baseExpectedMinutes = getBaseExpectedMinutes(input.date, input.workloadVersions)
+  const baseExpectedMinutes = getBaseExpectedMinutes(input.date, input.workloadVersions, input.entries)
   const adjustedExpectation = calculateAdjustedExpectation(baseExpectedMinutes, applicableEvents)
   const recordedWorkedMinutes = input.entries.reduce((total, entry) => {
     if (entry.collaboratorId !== input.collaboratorId || entry.entryDate !== input.date || entry.status !== 'ACTIVE') return total

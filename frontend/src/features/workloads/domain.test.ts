@@ -40,4 +40,11 @@ describe('carga horária versionada', () => {
   it('retorna zero quando ainda não existe versão vigente', () => {
     expect(getBaseExpectedMinutes('2025-12-31', versions)).toBe(0)
   })
+
+  it('usa 9 horas de segunda a quinta e 8 horas na sexta para atividade de campo', () => {
+    const fieldEntry = [{ emObra: true }]
+    expect(getBaseExpectedMinutes('2026-07-20', versions, fieldEntry)).toBe(540)
+    expect(getBaseExpectedMinutes('2026-07-24', versions, fieldEntry)).toBe(480)
+    expect(getBaseExpectedMinutes('2026-07-25', versions, fieldEntry)).toBe(0)
+  })
 })
