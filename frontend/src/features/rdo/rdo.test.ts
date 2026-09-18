@@ -23,4 +23,18 @@ describe('dados do RDO', () => {
       signatureName: 'Rafael',
     })
   })
+
+  it('calcula a duração pelos horários descontando uma hora de almoço quando horas totais estão vazias', () => {
+    const data = buildRdoData({
+      startDate: '2026-07-20',
+      projectCode: 'SMA-001',
+      hours: '',
+      minutes: '',
+      startTime: '07:30',
+      endTime: '17:30',
+      details: 'Levantamento de campo',
+    }, { name: 'Rafael' })
+
+    expect(data.duration).toBe('09:00')
+  })
 })

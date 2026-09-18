@@ -20,10 +20,33 @@ type RdoFormData = {
 type RdoContext = { name: string; jobTitle?: string; clientName?: string; activityName?: string }
 export type RdoData = ReturnType<typeof buildRdoData>
 
+function parseTimeToMinutes(value?: string) {
+  if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+export function calculateRdoDurationFromTimes(startTime?: string, endTime?: string, lunchBreakMinutes = 60) {
+  const startMinutes = parseTimeToMinutes(startTime)
+  const endMinutes = parseTimeToMinutes(endTime)
+  if (startMinutes === null || endMinutes === null) return null
+  const elapsedMinutes = endMinutes >= startMinutes ? endMinutes - startMinutes : endMinutes + 24 * 60 - startMinutes
+  const durationMinutes = elapsedMinutes - lunchBreakMinutes
+  if (durationMinutes <= 0) return null
+  return {
+    hours: Math.floor(durationMinutes / 60),
+    minutes: durationMinutes % 60,
+  }
+}
+
 export function buildRdoData(values: RdoFormData, context: RdoContext) {
   const entryDate = values.entryDate ?? values.startDate ?? ''
   if (!isIsoDate(entryDate)) throw new Error('Informe uma data válida para criar o RDO.')
-  const hours = Number(values.hours || 0), minutes = Number(values.minutes || 0)
+  const directHours = Number(values.hours || 0), directMinutes = Number(values.minutes || 0)
+  const calculatedDuration = calculateRdoDurationFromTimes(values.startTime, values.endTime)
+  const hasDirectDuration = areValidDurationParts(directHours, directMinutes)
+  const hours = hasDirectDuration ? directHours : calculatedDuration?.hours ?? 0
+  const minutes = hasDirectDuration ? directMinutes : calculatedDuration?.minutes ?? 0
   if (!areValidDurationParts(hours, minutes)) throw new Error('Informe uma duração válida para criar o RDO.')
   if (!values.projectCode.trim()) throw new Error('Informe o número do projeto para criar o RDO.')
   return {
