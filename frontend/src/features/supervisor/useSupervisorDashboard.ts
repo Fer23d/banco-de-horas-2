@@ -8,7 +8,7 @@ import type {
 } from './types'
 
 type SupervisorDashboardState = {
-  collaborators: Array<{ id: string, name: string }>
+  collaborators: Array<{ id: string, name: string, supervisorId?: string }>
   entries: SupervisorPendingEntry[]
   requests: SupervisorTimeOffRequest[]
   summary: SupervisorDashboardSummary

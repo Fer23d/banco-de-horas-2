@@ -35,6 +35,17 @@ const seedEntries = [
 ]
 
 describe('LocalStorageSupervisorService', () => {
+  it('lista supervisores e colaboradores por supervisão', async () => {
+    const service = new LocalStorageSupervisorService(createMemoryStorage(), () => '2026-07-30T12:00:00.000Z', seedEntries)
+
+    await expect(service.listSupervisors()).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'supervisor-demo-001' }),
+    ]))
+    await expect(service.getEmployeesBySupervisorId('supervisor-demo-001')).resolves.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'demo-collaborator-001' }),
+    ]))
+  })
+
   it('lista apontamentos mockados como pendentes inicialmente', async () => {
     const service = new LocalStorageSupervisorService(createMemoryStorage(), () => '2026-07-30T12:00:00.000Z', seedEntries)
 

@@ -185,4 +185,26 @@ describe('calendário acessível', () => {
     expect(managerMarkup).toContain('SM')
     expect(managerMarkup).toContain('data-calendar-day')
   })
+
+  it('exibe filtros em cascata para a Diretoria e mantém apenas colaborador para Supervisor', () => {
+    const collaborators = [
+      { id: 'collaborator-1', name: 'Ana', supervisorId: 'supervisor-1' },
+      { id: 'collaborator-2', name: 'Bruno', supervisorId: 'supervisor-2' },
+    ]
+    const supervisors = [{ id: 'supervisor-1', name: 'Supervisora Ana' }, { id: 'supervisor-2', name: 'Supervisor Bruno' }]
+    const commonProps = {
+      entries: [],
+      collaborators,
+      supervisors,
+      onApprove: vi.fn(),
+      onReject: vi.fn(),
+    }
+
+    const directorMarkup = renderToStaticMarkup(<ManagerCalendar {...commonProps} role="DIRECTOR_ADMIN" />)
+    const supervisorMarkup = renderToStaticMarkup(<ManagerCalendar {...commonProps} role="SUPERVISOR" />)
+
+    expect(directorMarkup).toContain('Selecione a Supervisão')
+    expect(directorMarkup).toContain('Supervisora Ana')
+    expect(supervisorMarkup).not.toContain('Selecione a Supervisão')
+  })
 })

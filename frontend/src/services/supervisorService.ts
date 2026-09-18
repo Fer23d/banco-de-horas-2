@@ -5,7 +5,7 @@ import type {
   SupervisorRequestSummary,
   SupervisorTimeOffRequest,
 } from '../features/supervisor/types'
-import { demoAssignmentSnapshot, demoCollaborator } from '../mocks/demoData'
+import { demoAssignmentSnapshot, demoCollaborator, demoSupervisors } from '../mocks/demoData'
 import { TIME_ENTRY_STORAGE_KEY } from './timeEntryService'
 import { normalizeTimeEntry, type TimeEntryStorageV3 } from './timeEntryMigration'
 import { TIME_OFF_STORAGE_KEY, timeOffService, type TimeOffStorage } from './timeOffService'
@@ -33,11 +33,14 @@ type SupervisorEntryCandidate = Omit<SupervisorPendingEntry, 'status'> & {
 type TeamMember = {
   id: string
   name: string
+  supervisorId?: string
 }
 
 export interface SupervisorService {
   listEntries(): Promise<SupervisorPendingEntry[]>
+  listSupervisors(): Promise<Array<{ id: string; name: string }>>
   listCollaborators(): Promise<TeamMember[]>
+  getEmployeesBySupervisorId(supervisorId: string): Promise<TeamMember[]>
   approve(entryId: string, supervisorId: string): Promise<SupervisorPendingEntry>
   reject(entryId: string, supervisorId: string, reason: string): Promise<SupervisorPendingEntry>
   listTimeOffRequests(supervisorId: string): Promise<SupervisorTimeOffRequest[]>
@@ -325,10 +328,35 @@ export class LocalStorageSupervisorService implements SupervisorService {
   }
 
   async listCollaborators() {
-    const dynamicCollaborators = Object.keys(this.readTimeEntryStorage().entriesByCollaborator)
+    const timeEntryStorage = this.readTimeEntryStorage()
+    const supervisorByCollaborator = new Map<string, string>()
+    for (const entries of Object.values(timeEntryStorage.entriesByCollaborator)) {
+      for (const entry of entries) {
+        const supervisorId = entry.assignmentSnapshot?.supervisorId
+        if (supervisorId) supervisorByCollaborator.set(entry.collaboratorId, supervisorId)
+      }
+    }
+    const dynamicCollaborators = Object.keys(timeEntryStorage.entriesByCollaborator)
       .filter((collaboratorId) => !COLLABORATOR_NAME_BY_ID.has(collaboratorId))
-      .map((collaboratorId) => ({ id: collaboratorId, name: collaboratorId }))
-    return [...TEAM_MEMBERS.map((member) => ({ ...member })), ...dynamicCollaborators]
+      .map((collaboratorId) => ({ id: collaboratorId, name: collaboratorId, supervisorId: supervisorByCollaborator.get(collaboratorId) }))
+    return [...TEAM_MEMBERS.map((member) => ({ ...member, supervisorId: supervisorByCollaborator.get(member.id) ?? demoAssignmentSnapshot.supervisorId })), ...dynamicCollaborators]
+  }
+
+  async listSupervisors(): Promise<Array<{ id: string; name: string }>> {
+    const supervisors = new Map(demoSupervisors.filter((supervisor) => supervisor.active).map((supervisor) => [supervisor.id, { id: supervisor.id, name: supervisor.name }]))
+    for (const entries of Object.values(this.readTimeEntryStorage().entriesByCollaborator)) {
+      for (const entry of entries) {
+        const assignment = entry.assignmentSnapshot
+        if (assignment && !supervisors.has(assignment.supervisorId)) {
+          supervisors.set(assignment.supervisorId, { id: assignment.supervisorId, name: assignment.supervisorName })
+        }
+      }
+    }
+    return Array.from(supervisors.values()).sort((left, right) => left.name.localeCompare(right.name))
+  }
+
+  async getEmployeesBySupervisorId(supervisorId: string) {
+    return (await this.listCollaborators()).filter((collaborator) => collaborator.supervisorId === supervisorId)
   }
 
   approve(entryId: string, supervisorId: string) {

@@ -141,7 +141,8 @@ export function DiretoriaPage() {
   const [entries, setEntries] = useState<DiretoriaEntry[]>([])
   const [absences, setAbsences] = useState<DiretoriaAbsence[]>([])
   const [managerEntries, setManagerEntries] = useState<SupervisorPendingEntry[]>([])
-  const [managerCollaborators, setManagerCollaborators] = useState<Array<{ id: string; name: string }>>([])
+  const [managerCollaborators, setManagerCollaborators] = useState<Array<{ id: string; name: string; supervisorId?: string }>>([])
+  const [managerSupervisors, setManagerSupervisors] = useState<Array<{ id: string; name: string }>>([])
   const timesheetCycle = getTimesheetCycle()
 
   useEffect(() => {
@@ -159,10 +160,11 @@ export function DiretoriaPage() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([supervisorService.listEntries(), supervisorService.listCollaborators()]).then(([loadedEntries, loadedCollaborators]) => {
+    void Promise.all([supervisorService.listEntries(), supervisorService.listCollaborators(), supervisorService.listSupervisors()]).then(([loadedEntries, loadedCollaborators, loadedSupervisors]) => {
       if (!active) return
       setManagerEntries(loadedEntries)
       setManagerCollaborators(loadedCollaborators)
+      setManagerSupervisors(loadedSupervisors)
     })
     return () => { active = false }
   }, [])
@@ -250,6 +252,8 @@ export function DiretoriaPage() {
             <ManagerCalendar
               entries={managerEntries}
               collaborators={managerCollaborators}
+              supervisors={managerSupervisors}
+              role="DIRECTOR_ADMIN"
               onApprove={(entry) => {
                 void supervisorService.approve(entry.id, session?.id ?? 'director').then((updated) => {
                   setManagerEntries((current) => current.map((item) => item.id === updated.id ? updated : item))

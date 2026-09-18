@@ -500,6 +500,7 @@ export function SupervisorPage() {
                 <ManagerCalendar
                   entries={dashboard.entries}
                   collaborators={dashboard.collaborators}
+                  role="SUPERVISOR"
                   onApprove={(entry) => void dashboard.approve(entry)}
                   onReject={(entry, reason) => void dashboard.reject(entry, reason)}
                 />
