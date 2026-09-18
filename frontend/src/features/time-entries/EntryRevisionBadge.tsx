@@ -5,20 +5,22 @@ import { revisionStatusPresentation } from '../status/presentation'
 type RevisionProps = {
   version: number
   updatedAt?: string
+  wasResubmitted?: boolean
 }
 
-function getRevisionDetails({ version, updatedAt }: RevisionProps) {
+function getRevisionDetails({ version, updatedAt, wasResubmitted }: RevisionProps) {
   if (version <= 1) return null
-  if (!updatedAt) return `Versão ${version}`
+  const resubmissionLabel = wasResubmitted ? ' · Reenviado após rejeição' : ''
+  if (!updatedAt) return `Versão ${version}${resubmissionLabel}`
   const timestamp = new Date(updatedAt)
-  if (Number.isNaN(timestamp.getTime())) return `Versão ${version}`
+  if (Number.isNaN(timestamp.getTime())) return `Versão ${version}${resubmissionLabel}`
   const date = new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric', timeZone: CORPORATE_TIME_ZONE,
   }).format(timestamp)
   const time = new Intl.DateTimeFormat('pt-BR', {
     hour: '2-digit', minute: '2-digit', hour12: false, timeZone: CORPORATE_TIME_ZONE,
   }).format(timestamp)
-  return `Editado em ${date} às ${time} · Versão ${version}`
+  return `Editado em ${date} às ${time} · Versão ${version}${resubmissionLabel}`
 }
 
 export function EntryRevisionBadge({ version }: Pick<RevisionProps, 'version'>) {

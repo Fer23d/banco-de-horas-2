@@ -1,6 +1,6 @@
 import { MAX_ENTRY_MINUTES, MAX_PROJECT_CODE_LENGTH } from '../config/business'
 import type { AssignmentSnapshot } from '../features/squads/types'
-import type { DisciplineCode, TimeEntry } from '../features/time-entries/types'
+import type { DisciplineCode, TimeEntry, TimeEntryApprovalStatus } from '../features/time-entries/types'
 import { isIsoDate, isWeekend } from '../shared/utils/date'
 
 export const LEGACY_V1_TIME_ENTRY_STORAGE_KEY = 'sma:time-entries:v1'
@@ -96,6 +96,10 @@ function optionalString(value: unknown) {
   return typeof value === 'string' && value ? value : undefined
 }
 
+function normalizeApprovalStatus(value: unknown): TimeEntryApprovalStatus {
+  return value === 'APPROVED' || value === 'REJECTED' ? value : 'PENDING'
+}
+
 function optionalMinutes(value: unknown) {
   return Number.isInteger(value) && Number(value) >= 0 && Number(value) <= MAX_ENTRY_MINUTES ? Number(value) : 0
 }
@@ -127,6 +131,8 @@ function migrateV2Entry(entry: V2TimeEntry, collaboratorId: string): TimeEntry |
     funcaoContrato: optionalString(entry.funcaoContrato),
     assignmentSnapshot: safeLegacyAssignmentByCollaboratorId[collaboratorId] ?? null,
     status: entry.status,
+    approvalStatus: normalizeApprovalStatus(entry.approvalStatus),
+    rejectionReason: optionalString(entry.rejectionReason),
     version: entry.version,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
@@ -183,6 +189,8 @@ export function normalizeTimeEntry(value: unknown, collaboratorId: string): Time
     funcaoContrato: optionalString(entry.funcaoContrato),
     assignmentSnapshot: entry.assignmentSnapshot as AssignmentSnapshot | null,
     status: entry.status,
+    approvalStatus: normalizeApprovalStatus(entry.approvalStatus),
+    rejectionReason: optionalString(entry.rejectionReason),
     version: Number(entry.version),
     createdAt: entry.createdAt,
     updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : '',

@@ -15,6 +15,11 @@ describe('indicador de revisão do apontamento', () => {
     expect(markup).toContain('Editado em 20/07/2026 às 20:51 · Versão 2')
   })
 
+  it('identifica uma versão reenviada após rejeição', () => {
+    const markup = renderToStaticMarkup(<EntryRevisionDetails version={2} updatedAt="2026-07-20T23:51:00.000Z" wasResubmitted />)
+    expect(markup).toContain('Reenviado após rejeição')
+  })
+
   it('não inventa data quando o registro legado não possui updatedAt válido', () => {
     const markup = renderToStaticMarkup(<><EntryRevisionBadge version={3} /><EntryRevisionDetails version={3} /></>)
     expect(markup).toContain('Editado')

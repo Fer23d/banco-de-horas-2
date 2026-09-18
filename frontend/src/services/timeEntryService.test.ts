@@ -432,6 +432,32 @@ describe('comandos e consultas de apontamento', () => {
     })
   })
 
+  it('bloqueia a edição de um apontamento aprovado', async () => {
+    const storage = new MemoryStorage()
+    const service = buildService(storage)
+    const created = await service.create(collaboratorId, validData)
+    const stored = JSON.parse(storage.getItem(TIME_ENTRY_STORAGE_KEY) ?? '{}') as { entriesByCollaborator: Record<string, Array<Record<string, unknown>>> }
+    stored.entriesByCollaborator[collaboratorId][0].approvalStatus = 'APPROVED'
+    storage.setItem(TIME_ENTRY_STORAGE_KEY, JSON.stringify(stored))
+
+    await expect(service.update(collaboratorId, created.id, created.version, validData, 'Correção após aprovação'))
+      .rejects.toThrow('já aprovado')
+  })
+
+  it('reenvia apontamento rejeitado como pendente e incrementa a versão', async () => {
+    const storage = new MemoryStorage()
+    const service = buildService(storage)
+    const created = await service.create(collaboratorId, validData)
+    const stored = JSON.parse(storage.getItem(TIME_ENTRY_STORAGE_KEY) ?? '{}') as { entriesByCollaborator: Record<string, Array<Record<string, unknown>>> }
+    stored.entriesByCollaborator[collaboratorId][0].approvalStatus = 'REJECTED'
+    stored.entriesByCollaborator[collaboratorId][0].rejectionReason = 'Detalhar a atividade.'
+    storage.setItem(TIME_ENTRY_STORAGE_KEY, JSON.stringify(stored))
+
+    const updated = await service.update(collaboratorId, created.id, created.version, validData, 'Detalhamento corrigido')
+
+    expect(updated).toMatchObject({ approvalStatus: 'PENDING', version: 2, rejectionReason: 'Detalhar a atividade.' })
+  })
+
   it('bloqueia criação quando a data possui evento integral', async () => {
     const storage = new MemoryStorage()
     const dateGuard = {

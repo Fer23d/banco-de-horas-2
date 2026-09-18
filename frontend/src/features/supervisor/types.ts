@@ -8,6 +8,7 @@ export type SupervisorPendingEntry = {
   projectCode: string
   durationMinutes: number
   status: SupervisorApprovalStatus
+  version?: number
   clientId?: string
   emObra?: boolean
   numeroObra?: string

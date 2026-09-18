@@ -51,6 +51,7 @@ function EntryDetailsDialog({ entry, onClose }: { entry: SupervisorPendingEntry 
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-secondary)]">Detalhes do apontamento</p>
             <h2 id="entry-details-title" className="mt-1 text-xl font-extrabold text-[var(--color-primary)]">{entry.collaboratorName}</h2>
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">{formatDate(entry.entryDate)} · Projeto {entry.projectCode}</p>
+            {entry.version && entry.version > 1 && <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">Versão {entry.version} · Correção reenviada após rejeição</p>}
           </div>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
         </div>

@@ -378,6 +378,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       funcaoContrato: normalized.funcaoContrato,
       assignmentSnapshot,
       status: 'ACTIVE',
+      approvalStatus: 'PENDING',
       version: 1,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -398,6 +399,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
     const { entries, index, entry } = this.getOwnEntry(readResult.data, collaboratorId, id)
     this.assertVersion(entry, expectedVersion)
     if (entry.status === 'CANCELLED') throw new Error('Um apontamento cancelado não pode ser editado.')
+    if (entry.approvalStatus === 'APPROVED') throw new Error('Apontamento já aprovado. Não é possível editar.')
     await this.ensureMutable(collaboratorId, entry.entryDate)
     await this.ensureMutable(collaboratorId, normalized.entryDate)
     await this.ensureDateAvailable(collaboratorId, entry.entryDate)
@@ -406,6 +408,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       ...entry,
       ...normalized,
       lastEditReason: editReason,
+      approvalStatus: entry.approvalStatus === 'REJECTED' ? 'PENDING' : entry.approvalStatus ?? 'PENDING',
       version: entry.version + 1,
       updatedAt: this.now(),
     }
@@ -462,6 +465,7 @@ export class LocalStorageTimeEntryService implements TimeEntryService {
       funcaoContrato: normalized.funcaoContrato,
       assignmentSnapshot,
       status: 'ACTIVE',
+      approvalStatus: 'PENDING',
       version: 1,
       createdAt: timestamp,
       updatedAt: timestamp,

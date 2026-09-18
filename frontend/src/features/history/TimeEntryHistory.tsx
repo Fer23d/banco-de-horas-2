@@ -92,14 +92,15 @@ export function TimeEntryHistory() {
                     {approval?.deficitJustification && <p className="mt-3 text-sm ui-text-muted"><strong>Justificativa de aprovação com déficit:</strong> {approval.deficitJustification}</p>}
                     {entry.cancelReason && <p className="mt-3 text-sm ui-text-subtle"><strong>Motivo do cancelamento:</strong> {entry.cancelReason}</p>}
                     {row.summary.hasIntegralEventConflict && <p role="alert" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"><strong>Conflito com evento integral:</strong> registro preservado para auditoria e fora do saldo.</p>}
-                    <EntryRevisionDetails version={entry.version} updatedAt={entry.updatedAt} />
+                    <EntryRevisionDetails version={entry.version} updatedAt={entry.updatedAt} wasResubmitted={entry.version > 1 && Boolean(entry.rejectionReason)} />
                   </div>
                   <div className="flex min-w-44 flex-col gap-2">
                     {actions.edit && <Link to={`/colaborador/apontamentos/${entry.id}/editar`} className="rounded-xl border ui-border-primary px-3 py-2 text-center text-sm font-bold ui-heading">Editar</Link>}
                     {actions.duplicate && <Link to={`/colaborador/apontamentos/novo?duplicate=${entry.id}`} className="rounded-xl border ui-border px-3 py-2 text-center text-sm font-bold ui-text">Duplicar</Link>}
                     {actions.cancel && <button type="button" onClick={() => setCancelTarget(row)} className="rounded-xl border border-red-300 px-3 py-2 text-sm font-bold text-red-700 dark:border-red-800 dark:text-red-300">Cancelar</button>}
                     {actions.completeCorrection && <button type="button" onClick={() => void history.completeCorrection(row)} className="rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-amber-950">Concluir correção</button>}
-                    {actions.readOnly && <span className="rounded-xl ui-surface-subtle px-3 py-2 text-center text-sm font-semibold ui-text-muted">Somente leitura</span>}
+                    {actions.readOnly && approval?.status === 'APPROVED' && <button type="button" disabled title="Apontamento já aprovado. Não é possível editar." className="cursor-not-allowed rounded-xl ui-surface-subtle px-3 py-2 text-center text-sm font-semibold ui-text-muted">Editar bloqueado</button>}
+                    {actions.readOnly && approval?.status !== 'APPROVED' && <span className="rounded-xl ui-surface-subtle px-3 py-2 text-center text-sm font-semibold ui-text-muted">Somente leitura</span>}
                   </div>
                 </div>
               </article>

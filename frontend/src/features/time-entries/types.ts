@@ -1,6 +1,7 @@
 import type { AssignmentSnapshot } from '../squads/types'
 
 export type TimeEntryStatus = 'ACTIVE' | 'CANCELLED'
+export type TimeEntryApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type DisciplineCode = 'C'
 export type TimeEntryDayType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY'
 
@@ -24,6 +25,8 @@ export interface TimeEntry {
   funcaoContrato?: string
   assignmentSnapshot: AssignmentSnapshot | null
   status: TimeEntryStatus
+  approvalStatus?: TimeEntryApprovalStatus
+  rejectionReason?: string
   version: number
   createdAt: string
   updatedAt: string

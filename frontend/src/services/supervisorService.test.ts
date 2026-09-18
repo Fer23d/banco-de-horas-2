@@ -138,6 +138,46 @@ describe('LocalStorageSupervisorService', () => {
     ]))
   })
 
+  it('persiste status de aprovação no apontamento real para bloquear ou reabrir a edição', async () => {
+    const storage = createMemoryStorage()
+    const assignment: AssignmentSnapshot = {
+      squadId: 'squad-campo',
+      squadName: 'Equipe de Campo',
+      supervisorId: 'demo-supervisor-001',
+      supervisorName: 'Jeen Carlos E. Azevedo',
+    }
+    const timeEntryService = new LocalStorageTimeEntryService({
+      storage,
+      createId: () => 'versioned-entry-001',
+      now: () => '2026-07-31T12:00:00.000Z',
+      resolveAssignment: () => assignment,
+    })
+    await timeEntryService.create('collaborator-real-001', {
+      entryDate: '2026-07-31',
+      clientId: 'client-real',
+      projectCode: 'SM&A-REAL-001',
+      activityId: 'corporate-training-event',
+      disciplineCode: 'C',
+      durationMinutes: 300,
+      details: 'Registro para validação de versão.',
+    })
+
+    const supervisorService = new LocalStorageSupervisorService(storage, () => '2026-07-31T13:00:00.000Z', [])
+    await supervisorService.approve('versioned-entry-001', 'demo-supervisor-001')
+    await expect(timeEntryService.update('collaborator-real-001', 'versioned-entry-001', 1, {
+      entryDate: '2026-07-31', clientId: 'client-real', projectCode: 'SM&A-REAL-001', activityId: 'corporate-training-event', disciplineCode: 'C', durationMinutes: 300, details: 'Tentativa após aprovação.',
+    }, 'Tentativa após aprovação')).rejects.toThrow('já aprovado')
+
+    const raw = JSON.parse(storage.getItem(TIME_ENTRY_STORAGE_KEY) ?? '{}') as { entriesByCollaborator: Record<string, Array<Record<string, unknown>>> }
+    raw.entriesByCollaborator['collaborator-real-001'][0].approvalStatus = 'REJECTED'
+    raw.entriesByCollaborator['collaborator-real-001'][0].rejectionReason = 'Detalhar a atividade.'
+    storage.setItem(TIME_ENTRY_STORAGE_KEY, JSON.stringify(raw))
+    const updated = await timeEntryService.update('collaborator-real-001', 'versioned-entry-001', 1, {
+      entryDate: '2026-07-31', clientId: 'client-real', projectCode: 'SM&A-REAL-001', activityId: 'corporate-training-event', disciplineCode: 'C', durationMinutes: 360, details: 'Correção enviada.',
+    }, 'Correção enviada')
+    expect(updated).toMatchObject({ approvalStatus: 'PENDING', version: 2 })
+  })
+
   it('lista ausencias gravadas na chave compartilhada para aprovacao do supervisor', async () => {
     const storage = createMemoryStorage()
     storage.setItem(TIME_OFF_STORAGE_KEY, JSON.stringify([{
