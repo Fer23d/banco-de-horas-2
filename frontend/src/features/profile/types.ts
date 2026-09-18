@@ -13,4 +13,5 @@ export interface CollaboratorProfile {
   active: boolean
   location: WorkLocation
   activeSquadId: string
+  signatureBase64?: string
 }

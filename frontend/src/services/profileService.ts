@@ -8,6 +8,8 @@ import { defaultPostCommitErrorHandler, runPostCommitEffect, type PostCommitErro
 
 const PROFILE_STORAGE_KEY = 'sma:collaborator-profile:v1'
 export const PROFILE_UPDATED_EVENT = 'sma:profile-updated'
+const MAX_SIGNATURE_LENGTH = 300_000
+const SIGNATURE_DATA_URL_PATTERN = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/i
 
 export type UpdateProfileInput = {
   name: string
@@ -16,9 +18,14 @@ export type UpdateProfileInput = {
   activeSquadId: string
 }
 
+export type UpdateSignatureInput = {
+  signatureBase64: string
+}
+
 export interface ProfileService {
   getById(collaboratorId: string): Promise<CollaboratorProfile | null>
   updateProfile(collaboratorId: string, input: UpdateProfileInput): Promise<CollaboratorProfile>
+  saveSignature(collaboratorId: string, signatureBase64: string): Promise<CollaboratorProfile>
   changeActiveSquad(collaboratorId: string, squadId: string): Promise<CollaboratorProfile>
   resolveAssignment(collaboratorId: string): AssignmentSnapshot | null
 }
@@ -36,6 +43,7 @@ function isProfile(value: unknown): value is CollaboratorProfile {
   const location = profile.location as Record<string, unknown> | undefined
   return typeof profile.id === 'string' && typeof profile.name === 'string' && typeof profile.email === 'string'
     && typeof profile.jobTitle === 'string' && typeof profile.active === 'boolean' && typeof profile.activeSquadId === 'string'
+    && (profile.signatureBase64 === undefined || typeof profile.signatureBase64 === 'string')
     && Boolean(location) && location?.countryCode === 'BR' && typeof location.stateCode === 'string'
     && typeof location.city === 'string' && typeof location.timeZone === 'string'
 }
@@ -87,6 +95,21 @@ export class LocalProfileService implements ProfileService {
     const squad = demoSquads.find((item) => item.id === input.activeSquadId && item.active)
     if (!squad) throw new Error('A squad selecionada não está disponível.')
     const updated: CollaboratorProfile = { ...current, name, email, jobTitle, activeSquadId: input.activeSquadId }
+    this.storage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updated))
+    notifyProfileUpdated()
+    return updated
+  }
+
+  async saveSignature(collaboratorId: string, signatureBase64: string) {
+    const current = this.read()
+    if (current.id !== collaboratorId) throw new Error('Perfil profissional não encontrado.')
+    if (signatureBase64.length > MAX_SIGNATURE_LENGTH) {
+      throw new Error('A assinatura deve ter no máximo 300.000 caracteres.')
+    }
+    if (!SIGNATURE_DATA_URL_PATTERN.test(signatureBase64)) {
+      throw new Error('A assinatura deve ser uma imagem PNG ou JPEG em formato data URL.')
+    }
+    const updated: CollaboratorProfile = { ...current, signatureBase64 }
     this.storage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updated))
     notifyProfileUpdated()
     return updated

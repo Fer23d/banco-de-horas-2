@@ -22,6 +22,7 @@ export function CreateRdoButton({ values }: { values: TimeEntryFormValues }) {
         ...values,
         clientName: demoClients.find((client) => client.id === values.clientId)?.name,
         activityName: allTimeEntryActivities.find((activity) => activity.id === values.activityId)?.name,
+        signatureBase64: profile.signatureBase64,
       }, { name: profile.name, jobTitle: profile.jobTitle })
       const response = await fetch(logoUrl)
       if (!response.ok) throw new Error('Não foi possível carregar a logo do RDO.')

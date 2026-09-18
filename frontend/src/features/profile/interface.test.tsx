@@ -5,6 +5,11 @@ import { ProfileSummary } from './ProfileSummary'
 import { SquadSelector } from './SquadSelector'
 import { WorkloadHistory } from '../workloads/WorkloadHistory'
 import { WorkloadRequestForm } from '../workloads/WorkloadRequestForm'
+import { PerfilPage } from '../../pages/PerfilPage'
+
+const { useProfileMock } = vi.hoisted(() => ({ useProfileMock: vi.fn() }))
+
+vi.mock('../collaborator/useProfile', () => ({ useProfile: useProfileMock }))
 
 describe('interface de perfil profissional', () => {
   it('exibe status, localização controlada, squad, supervisor e carga vigente', () => {
@@ -32,5 +37,35 @@ describe('interface de perfil profissional', () => {
     const markup = renderToStaticMarkup(<WorkloadHistory versions={demoWorkloadVersions} requests={[]} />)
     expect(markup).toContain('Histórico de cargas')
     expect(markup).toContain('Solicitações de alteração')
+  })
+
+  it('renderiza a captura de assinatura para um perfil legado sem assinatura', () => {
+    useProfileMock.mockReturnValue({
+      data: {
+        profile: demoCollaborator,
+        assignment: demoAssignmentSnapshot,
+        squads: demoSquads,
+        workloadVersions: demoWorkloadVersions,
+        workloadRequests: [],
+        currentWorkload: demoWorkloadVersions[0],
+      },
+      isLoading: false,
+      error: null,
+      isSaving: false,
+      reload: vi.fn(),
+      updateProfile: vi.fn(),
+      changeSquad: vi.fn(),
+      createInitialWorkload: vi.fn(),
+      requestWorkloadChange: vi.fn(),
+      saveSignature: vi.fn(),
+    })
+
+    const markup = renderToStaticMarkup(<PerfilPage />)
+
+    expect(markup).toContain('Padrão de Assinatura')
+    expect(markup).toContain('Limpar')
+    expect(markup).toContain('Salvar Assinatura')
+    expect(markup).toContain('<canvas')
+    expect(markup).toContain(demoCollaborator.name)
   })
 })

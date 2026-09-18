@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import SignatureCanvas from 'react-signature-canvas'
 import { PageContainer } from '../components/PageContainer'
 import { useProfile } from '../features/collaborator/useProfile'
 import { ProfileSummary } from '../features/profile/ProfileSummary'
@@ -30,18 +31,42 @@ export function PerfilPage() {
   const [isEditing, setEditing] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [operationError, setOperationError] = useState<string | null>(null)
+  const [signatureStatus, setSignatureStatus] = useState<string | null>(null)
+  const [signatureError, setSignatureError] = useState<string | null>(null)
+  const signatureRef = useRef<SignatureCanvas | null>(null)
 
   const updateField = (field: WorkloadFormField, value: string) => setForm((current) => ({ ...current, [field]: value }))
   const updateProfileField = (field: keyof ProfileForm, value: string) => setProfileForm((current) => ({ ...current, [field]: value }))
 
   useEffect(() => {
-    if (!profileState.data) return
+    if (!profileState.data || isEditing) return
     setProfileForm({
       name: profileState.data.profile.name,
       email: profileState.data.profile.email,
       jobTitle: profileState.data.profile.jobTitle,
       activeSquadId: profileState.data.profile.activeSquadId,
     })
+  }, [profileState.data, isEditing])
+
+  useEffect(() => {
+    const canvas = signatureRef.current?.getCanvas()
+    if (!canvas) return
+
+    const syncSignatureCoordinates = () => {
+      const bounds = canvas.getBoundingClientRect()
+      if (bounds.width <= 0 || bounds.height <= 0) return
+      canvas.getContext('2d')?.setTransform(canvas.width / bounds.width, 0, 0, canvas.height / bounds.height, 0, 0)
+    }
+
+    syncSignatureCoordinates()
+    window.addEventListener('resize', syncSignatureCoordinates)
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(syncSignatureCoordinates)
+    resizeObserver?.observe(canvas)
+
+    return () => {
+      window.removeEventListener('resize', syncSignatureCoordinates)
+      resizeObserver?.disconnect()
+    }
   }, [profileState.data])
 
   function cancelProfileEdit() {
@@ -87,6 +112,27 @@ export function PerfilPage() {
     }
   }
 
+  function clearSignature() {
+    signatureRef.current?.clear()
+    setSignatureStatus(null)
+    setSignatureError(null)
+  }
+
+  async function saveSignature() {
+    setSignatureStatus(null)
+    setSignatureError(null)
+    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+      setSignatureError('Desenhe sua assinatura antes de salvar.')
+      return
+    }
+    try {
+      await profileState.saveSignature(signatureRef.current.toDataURL('image/png'))
+      setSignatureStatus('Assinatura salva com sucesso.')
+    } catch (error) {
+      setSignatureError(error instanceof Error ? error.message : 'Não foi possível salvar a assinatura.')
+    }
+  }
+
   return (
     <PageContainer title="Meu perfil" description="Informações profissionais, alocação e carga horária da sessão corporativa.">
       {profileState.isLoading && <p aria-live="polite" className="text-sm ui-text-muted">Carregando perfil profissional...</p>}
@@ -118,6 +164,37 @@ export function PerfilPage() {
             ) : (
               <ProfileSummary profile={profileState.data.profile} assignment={profileState.data.assignment} currentWorkload={profileState.data.currentWorkload} />
             )}
+          </section>
+          <section className="space-y-4" aria-labelledby="signature-title">
+            <div>
+              <h2 id="signature-title" className="text-lg font-extrabold ui-heading">Padrão de Assinatura</h2>
+              <p className="mt-1 text-sm ui-text-muted">Desenhe a assinatura que será usada nos seus relatórios diários.</p>
+            </div>
+            {profileState.data.profile.signatureBase64 && (
+              <div className="rounded-xl ui-surface-subtle p-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider ui-text-subtle">Assinatura salva</p>
+                <img src={profileState.data.profile.signatureBase64} alt="Assinatura atual" className="h-20 max-w-full object-contain object-left" />
+              </div>
+            )}
+            <div className="max-w-3xl overflow-hidden rounded-xl border ui-border bg-white">
+              <SignatureCanvas
+                ref={signatureRef}
+                clearOnResize={false}
+                penColor="#111827"
+                canvasProps={{
+                  'aria-label': 'Área para desenhar a assinatura',
+                  width: 768,
+                  height: 192,
+                  className: 'block aspect-[4/1] h-auto w-full touch-none bg-white',
+                }}
+              />
+            </div>
+            {signatureError && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{signatureError}</p>}
+            {signatureStatus && <p aria-live="polite" className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{signatureStatus}</p>}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={clearSignature} className="ui-button-secondary" disabled={profileState.isSaving}>Limpar</button>
+              <button type="button" onClick={() => void saveSignature()} className="ui-button-primary" disabled={profileState.isSaving}>Salvar Assinatura</button>
+            </div>
           </section>
           <WorkloadRequestForm
             {...form}

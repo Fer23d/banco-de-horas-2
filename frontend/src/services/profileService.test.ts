@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AuditEvent } from '../features/audit/types'
 import { demoCollaborator } from '../mocks/demoData'
-import { LocalProfileService } from './profileService'
+import { LocalProfileService, PROFILE_UPDATED_EVENT } from './profileService'
 import type { StorageLike } from './storage'
 import { LocalStorageTimeEntryService } from './timeEntryService'
 
@@ -16,6 +16,10 @@ const entryData = {
   activityId: 'corporate-training-event', disciplineCode: 'C' as const,
   durationMinutes: 60, details: 'Atividade executada',
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('perfil e squad ativa', () => {
   it('carrega perfil ativo com localidade controlada', async () => {
@@ -61,5 +65,42 @@ describe('perfil e squad ativa', () => {
     await expect(service.changeActiveSquad(demoCollaborator.id, 'squad-electrical')).resolves.toMatchObject({ activeSquadId: 'squad-electrical' })
     await expect(service.getById(demoCollaborator.id)).resolves.toMatchObject({ activeSquadId: 'squad-electrical' })
     expect(onPostCommitError).toHaveBeenCalledOnce()
+  })
+
+  it('salva assinatura PNG, notifica a atualização e recarrega do mesmo armazenamento', async () => {
+    const storage = new MemoryStorage()
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent })
+    const signatureBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB'
+    const service = new LocalProfileService({ storage })
+
+    await expect(service.saveSignature(demoCollaborator.id, signatureBase64)).resolves.toMatchObject({ signatureBase64 })
+    expect(dispatchEvent).toHaveBeenCalledOnce()
+    expect(dispatchEvent.mock.calls[0][0]).toMatchObject({ type: PROFILE_UPDATED_EVENT })
+
+    const reloadedService = new LocalProfileService({ storage })
+    await expect(reloadedService.getById(demoCollaborator.id)).resolves.toMatchObject({ signatureBase64 })
+  })
+
+  it('rejeita data URL que não seja imagem PNG ou JPEG', async () => {
+    const service = new LocalProfileService({ storage: new MemoryStorage() })
+
+    await expect(service.saveSignature(demoCollaborator.id, 'data:text/plain;base64,SGVsbG8='))
+      .rejects.toThrow('A assinatura deve ser uma imagem PNG ou JPEG em formato data URL.')
+  })
+
+  it('rejeita assinatura com mais de 300.000 caracteres', async () => {
+    const service = new LocalProfileService({ storage: new MemoryStorage() })
+    const prefix = 'data:image/jpeg;base64,'
+    const signatureBase64 = `${prefix}${'A'.repeat(300_001 - prefix.length)}`
+
+    await expect(service.saveSignature(demoCollaborator.id, signatureBase64))
+      .rejects.toThrow('A assinatura deve ter no máximo 300.000 caracteres.')
+  })
+
+  it('mantém perfis legados sem assinatura válidos', async () => {
+    const service = new LocalProfileService({ storage: new MemoryStorage() })
+
+    await expect(service.getById(demoCollaborator.id)).resolves.toEqual(demoCollaborator)
   })
 })

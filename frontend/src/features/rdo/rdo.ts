@@ -15,10 +15,38 @@ type RdoFormData = {
   startTime?: string
   endTime?: string
   funcaoContrato?: string
+  signatureBase64?: string
   details: string
 }
 type RdoContext = { name: string; jobTitle?: string; clientName?: string; activityName?: string }
 export type RdoData = ReturnType<typeof buildRdoData>
+
+type DecodedSignature = {
+  bytes: Uint8Array
+  format: 'PNG' | 'JPEG'
+}
+
+export function decodeSignatureDataUrl(value?: string): DecodedSignature | null {
+  const match = value?.trim().match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/i)
+  if (!match) return null
+
+  try {
+    const binary = atob(match[2])
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    const format = match[1].toLowerCase() === 'png' ? 'PNG' : 'JPEG'
+    const isPng = bytes.length >= 12
+      && [137, 80, 78, 71, 13, 10, 26, 10].every((byte, index) => bytes[index] === byte)
+      && [73, 69, 78, 68].every((byte, index) => bytes[bytes.length - 8 + index] === byte)
+    const isJpeg = bytes.length >= 4
+      && bytes[0] === 0xff && bytes[1] === 0xd8
+      && bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9
+
+    if ((format === 'PNG' && !isPng) || (format === 'JPEG' && !isJpeg)) return null
+    return { bytes, format }
+  } catch {
+    return null
+  }
+}
 
 function parseTimeToMinutes(value?: string) {
   if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null
@@ -41,6 +69,8 @@ export function calculateRdoDurationFromTimes(startTime?: string, endTime?: stri
 
 export function buildRdoData(values: RdoFormData, context: RdoContext) {
   const entryDate = values.entryDate ?? values.startDate ?? ''
+  const signature = values.signatureBase64?.trim()
+  const signatureBase64 = decodeSignatureDataUrl(signature) ? signature : undefined
   if (!isIsoDate(entryDate)) throw new Error('Informe uma data válida para criar o RDO.')
   const directHours = Number(values.hours || 0), directMinutes = Number(values.minutes || 0)
   const calculatedDuration = calculateRdoDurationFromTimes(values.startTime, values.endTime)
@@ -56,6 +86,7 @@ export function buildRdoData(values: RdoFormData, context: RdoContext) {
     duration: formatMinutes(hours * 60 + minutes), object: '',
     startTime: values.startTime || '--:--', endTime: values.endTime || '--:--',
     lunchBreak: '1 hora de almoço', signatureName: context.name,
+    signatureBase64,
     valeNumber: '',
     discipline: 'C – Campo',
     documentType: '', client: values.clientName ?? context.clientName ?? '',
@@ -74,6 +105,7 @@ export function rdoWordFileName(data: RdoData) {
 
 export function generateRdo(data: RdoData, logo: Uint8Array) {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: false })
+  const signature = decodeSignatureDataUrl(data.signatureBase64)
   pdf.setProperties({ title: 'Relatório Diário de Obra', author: 'SM&A Sistemas Elétricos e Automação' })
   const margin = 12
   const width = pdf.internal.pageSize.getWidth() - margin * 2
@@ -179,7 +211,8 @@ export function generateRdo(data: RdoData, logo: Uint8Array) {
     y = drawRow(y, [
       { label: 'ATIVIDADE REALIZADA', value: data.activity, width },
     ])
-    const availableLines = Math.max(1, Math.floor((bottom - y - 30) / lineHeight))
+    const signatureReserve = signature ? 34 : 30
+    const availableLines = Math.max(1, Math.floor((bottom - y - signatureReserve) / lineHeight))
     const pageLines = pending.splice(0, availableLines)
     const detailHeight = Math.max(18, 7 + pageLines.length * lineHeight)
     pdf.setDrawColor(75)
@@ -196,9 +229,31 @@ export function generateRdo(data: RdoData, logo: Uint8Array) {
     page += 1
   } while (pending.length)
 
-  const signatureY = Math.min(lastContentY + 14, bottom - 10)
-  pdf.setDrawColor(75)
-  pdf.line(margin + width / 2 - 35, signatureY, margin + width / 2 + 35, signatureY)
+  const signatureY = Math.min(lastContentY + (signature ? 18 : 14), bottom - 10)
+  let signatureDrawn = false
+  if (signature) {
+    try {
+      const properties = pdf.getImageProperties(signature.bytes)
+      const scale = Math.min(42 / properties.width, 16 / properties.height)
+      const signatureWidth = properties.width * scale
+      const signatureHeight = properties.height * scale
+      pdf.addImage(
+        signature.bytes,
+        signature.format,
+        margin + width / 2 - signatureWidth / 2,
+        signatureY - signatureHeight,
+        signatureWidth,
+        signatureHeight,
+      )
+      signatureDrawn = true
+    } catch {
+      signatureDrawn = false
+    }
+  }
+  if (!signatureDrawn) {
+    pdf.setDrawColor(75)
+    pdf.line(margin + width / 2 - 35, signatureY, margin + width / 2 + 35, signatureY)
+  }
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(8)
   pdf.setTextColor(20)
@@ -237,8 +292,20 @@ function wordCell(label: string, value: string) {
   })
 }
 
-export async function generateRdoWord(data: RdoData, logo: Uint8Array) {
-  const document = new Document({
+function createRdoWordDocument(data: RdoData, logo: Uint8Array, signature: DecodedSignature | null) {
+  const signatureParagraph = signature
+    ? new Paragraph({
+        spacing: { before: 500 },
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({
+          data: signature.bytes,
+          transformation: { width: 160, height: 60 },
+          type: signature.format === 'PNG' ? 'png' : 'jpg',
+        })],
+      })
+    : new Paragraph({ spacing: { before: 500 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: '___________________________', size: 22 })] })
+
+  return new Document({
     sections: [{
       properties: {},
       children: [
@@ -264,11 +331,32 @@ export async function generateRdoWord(data: RdoData, logo: Uint8Array) {
         new Paragraph({ spacing: { before: 180 }, children: [new TextRun({ text: 'DETALHAMENTO DAS ATIVIDADES', bold: true, size: 18, color: '505050' })] }),
         new Paragraph({ children: [new TextRun({ text: data.details || ' ', size: 22 })] }),
         new Paragraph({ spacing: { before: 180 }, children: [new TextRun({ text: data.lunchBreak, italics: true, size: 20 })] }),
-        new Paragraph({ spacing: { before: 500 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: '___________________________', size: 22 })] }),
+        signatureParagraph,
         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: data.signatureName, size: 22 })] }),
       ],
     }],
   })
-  const blob = await Packer.toBlob(document)
+}
+
+export async function generateRdoWord(data: RdoData, logo: Uint8Array) {
+  let signature = decodeSignatureDataUrl(data.signatureBase64)
+  if (signature) {
+    try {
+      // docx packages bytes without validating that an image can actually decode.
+      const image = new Image()
+      image.src = data.signatureBase64!.trim()
+      await image.decode()
+      if (!image.naturalWidth || !image.naturalHeight) signature = null
+    } catch {
+      signature = null
+    }
+  }
+  let blob: Blob
+  try {
+    blob = await Packer.toBlob(createRdoWordDocument(data, logo, signature))
+  } catch (error) {
+    if (!signature) throw error
+    blob = await Packer.toBlob(createRdoWordDocument(data, logo, null))
+  }
   saveAs(blob, rdoWordFileName(data))
 }
