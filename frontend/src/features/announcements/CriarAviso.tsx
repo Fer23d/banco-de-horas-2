@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { organogramaDEP } from '../../data/mockDEP'
 import { useSession } from '../session/useSession'
-import { ANNOUNCEMENTS_STORAGE_KEY, type ComunicadoTipo } from './types'
+import { ANNOUNCEMENTS_STORAGE_KEY, parseStoredAnnouncements, type Comunicado, type ComunicadoTipo } from './types'
 
 type DestinationType = 'all' | 'team' | 'individual'
 type Team = { name: string; supervisor: string; members: string[] }
@@ -13,10 +13,10 @@ const teams: Team[] = organogramaDEP.flatMap((management) => management.squads.m
 })))
 const allMembers = Array.from(new Set(teams.flatMap((team) => team.members))).sort((a, b) => a.localeCompare(b, 'pt-BR'))
 
-function readStoredAnnouncements(): Record<string, unknown>[] {
+function readStoredAnnouncements(): Comunicado[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(ANNOUNCEMENTS_STORAGE_KEY) ?? '[]')
-    return Array.isArray(parsed) ? parsed.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item))) : []
+    return parseStoredAnnouncements(parsed)
   } catch { return [] }
 }
 
@@ -38,14 +38,15 @@ export function CriarAviso({ onCreated }: { onCreated?: () => void }) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const cleanTitle = title.trim()
-    const cleanMessage = message.trim()
-    if (!cleanTitle || !cleanMessage) { setFeedback('Informe o título e a mensagem do aviso.'); return }
-    const resolvedDestination: DestinationType = session?.role === 'SUPERVISOR' ? (destination === 'individual' ? 'individual' : 'team') : destination
-    const target = resolvedDestination === 'all' ? 'geral' : resolvedDestination === 'team' ? (fixedTeam ? supervisorTeam?.name : team) : individual
-    if (!target) { setFeedback('Selecione um destinatário válido.'); return }
-    const notice = { id: crypto.randomUUID?.() ?? `${Date.now()}`, titulo: cleanTitle, mensagem: cleanMessage, dataPublicacao: new Date().toISOString(), autor: session?.name ?? 'Gestão', autorId: session?.id ?? '', tipo: urgency, tipo_destinatario: resolvedDestination, alvo_referencia: target, oculto_por: [] as string[] }
     try {
+      const cleanTitle = title.trim()
+      const cleanMessage = message.trim()
+      if (!cleanTitle || !cleanMessage) { setFeedback('Informe o título e a mensagem do aviso.'); return }
+      const resolvedDestination: DestinationType = session?.role === 'SUPERVISOR' ? (destination === 'individual' ? 'individual' : 'team') : destination
+      const target = resolvedDestination === 'all' ? 'geral' : resolvedDestination === 'team' ? (fixedTeam ? supervisorTeam?.name : team) : individual
+      if (!target) { setFeedback('Selecione um destinatário válido.'); return }
+      const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}`
+      const notice: Comunicado = { id, titulo: cleanTitle, mensagem: cleanMessage, dataPublicacao: new Date().toISOString(), autor: session?.name ?? 'Gestão', autorId: session?.id ?? '', tipo: urgency, tipo_destinatario: resolvedDestination, alvo_referencia: target, oculto_por: [] }
       const updated = [notice, ...readStoredAnnouncements()]
       localStorage.setItem(ANNOUNCEMENTS_STORAGE_KEY, JSON.stringify(updated))
       setTitle(''); setMessage(''); setFeedback('Aviso enviado com sucesso.'); onCreated?.()

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from '../features/session/useSession'
-import { ANNOUNCEMENTS_STORAGE_KEY, type Comunicado, type ComunicadoTipo } from '../features/announcements/types'
+import { ANNOUNCEMENTS_STORAGE_KEY, parseStoredAnnouncements, type Comunicado, type ComunicadoTipo } from '../features/announcements/types'
 import { PageContainer } from '../components/PageContainer'
 import { CriarAviso } from '../features/announcements/CriarAviso'
 import { useEscalationAlerts } from '../features/announcements/useEscalationAlerts'
@@ -20,8 +20,14 @@ function readAnnouncements(): Comunicado[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAnnouncements)); return defaultAnnouncements }
     const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return parseStoredAnnouncements(parsed)
   } catch { return [] }
+}
+
+function formatPublicationDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'data não informada'
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(date)
 }
 export function AvisosPage() {
   const { session } = useSession()
@@ -34,7 +40,7 @@ export function AvisosPage() {
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
-  const visibleAnnouncements = useMemo(() => announcements.filter((announcement) => !announcement.oculto_por?.includes(userId)).sort((a, b) => b.dataPublicacao.localeCompare(a.dataPublicacao)), [announcements, userId])
+  const visibleAnnouncements = useMemo(() => announcements.filter((announcement) => !announcement?.oculto_por?.includes(userId)).sort((a, b) => b.dataPublicacao.localeCompare(a.dataPublicacao)), [announcements, userId])
   const reloadAnnouncements = () => setAnnouncements(readAnnouncements())
   function hideForMe(id: string) {
     const updated = announcements.map((announcement) => announcement.id === id ? { ...announcement, oculto_por: [...new Set([...(announcement.oculto_por ?? []), userId])] } : announcement)
@@ -48,7 +54,7 @@ export function AvisosPage() {
       <section className="space-y-4" aria-labelledby="announcements-title">
         <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-secondary)]">Comunicados</p><h2 id="announcements-title" className="mt-1 text-xl font-extrabold ui-text">Mensagens recentes</h2></div><span className="text-sm text-[var(--color-text-muted)]">{visibleAnnouncements.length} comunicado(s)</span></div>
         <div className="space-y-4">
-          {visibleAnnouncements.length > 0 ? visibleAnnouncements.map((announcement) => { const style = presentation[announcement.tipo]; return <article key={announcement.id} className={`rounded-2xl border border-l-4 ui-border ui-surface p-5 shadow-sm ${style.border}`}><header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="text-lg font-extrabold ui-text">{announcement.titulo}</h3><p className="mt-1 text-sm text-[var(--color-text-muted)]">Publicado em {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${announcement.dataPublicacao}T00:00:00.000Z`))} · por {announcement.autor}</p></div><span className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${style.badge}`}>{style.label}</span></header><p className="mt-4 max-w-4xl text-sm leading-7 ui-text-muted">{announcement.mensagem}</p><button type="button" onClick={() => hideForMe(announcement.id)} className="mt-4 text-xs font-bold text-[var(--color-text-muted)] underline">Dispensar aviso</button></article> }) : <p className="rounded-2xl border ui-border ui-surface p-5 text-sm ui-text-muted">Nenhum comunicado disponível.</p>}
+          {visibleAnnouncements.length > 0 ? visibleAnnouncements.map((announcement) => { const style = presentation[announcement?.tipo] ?? presentation.info; return <article key={announcement?.id ?? 'announcement-unknown'} className={`rounded-2xl border border-l-4 ui-border ui-surface p-5 shadow-sm ${style.border}`}><header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h3 className="text-lg font-extrabold ui-text">{announcement?.titulo ?? 'Aviso sem título'}</h3><p className="mt-1 text-sm text-[var(--color-text-muted)]">Publicado em {formatPublicationDate(announcement?.dataPublicacao ?? '')} · por {announcement?.autor ?? 'Gestão'}</p></div><span className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${style.badge}`}>{style.label}</span></header><p className="mt-4 max-w-4xl text-sm leading-7 ui-text-muted">{announcement?.mensagem ?? 'Mensagem indisponível.'}</p><button type="button" onClick={() => announcement?.id && hideForMe(announcement.id)} className="mt-4 text-xs font-bold text-[var(--color-text-muted)] underline">Dispensar aviso</button></article> }) : <p className="rounded-2xl border ui-border ui-surface p-5 text-sm ui-text-muted">Nenhum comunicado disponível.</p>}
         </div>
       </section>
       </div>
