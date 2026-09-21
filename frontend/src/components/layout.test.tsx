@@ -87,6 +87,7 @@ describe('layout responsivo do colaborador', () => {
     expect(sidebarMarkup).toContain('Painel Diretor')
     expect(sidebarMarkup).toContain('Equipes')
     expect(sidebarMarkup).toContain('Avisos')
+    expect(sidebarMarkup).toContain('Relatórios')
     expect(sidebarMarkup).not.toContain('Visão geral')
     expect(sidebarMarkup).not.toContain('Novo apontamento')
     expect(sidebarMarkup).not.toContain('Ausências')

@@ -13,4 +13,5 @@ export const directorNavigation: NavigationItem[] = [
   { label: 'Painel Diretor', shortLabel: 'DI', path: '/administracao' },
   { label: 'Equipes', shortLabel: 'EQ', path: '/administracao/equipes' },
   { label: 'Avisos', shortLabel: 'AV', path: '/avisos' },
+  { label: 'Relatórios', shortLabel: 'RE', path: '/relatorios' },
 ]

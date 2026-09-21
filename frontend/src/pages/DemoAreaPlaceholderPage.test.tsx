@@ -112,6 +112,7 @@ describe('DemoAreaPlaceholderPage', () => {
   it.each([
     ['/supervisor', 'SUPERVISOR', 'Gestão da Equipe'],
     ['/administracao', 'DIRECTOR_ADMIN', 'Diretoria'],
+    ['/relatorios', 'DIRECTOR_ADMIN', 'Relatórios'],
   ] as const)('protege a rota %s para o perfil correto', (path, role, expectedName) => {
     expect(renderRoutes(path, role)).toContain(expectedName)
   })
@@ -133,6 +134,8 @@ describe('DemoAreaPlaceholderPage', () => {
     ['/administracao', 'SUPERVISOR'],
     ['/colaborador', 'SUPERVISOR'],
     ['/colaborador', 'DIRECTOR_ADMIN'],
+    ['/relatorios', 'COLLABORATOR'],
+    ['/relatorios', 'SUPERVISOR'],
   ] as const)('não exibe %s para uma sessão %s', (path, role) => {
     const markup = renderRoutes(path, role)
 

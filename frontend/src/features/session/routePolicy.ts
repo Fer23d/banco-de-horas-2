@@ -41,6 +41,7 @@ export function canAccessDemoPath(role: DemoRole, path: string) {
   const pathname = getSafePathname(path)
   if (!pathname) return false
   if (pathname === '/avisos') return role === 'SUPERVISOR' || role === 'DIRECTOR_ADMIN'
+  if (pathname === '/relatorios') return role === 'DIRECTOR_ADMIN'
   const homePath = getDemoHomePath(role)
   return pathname === homePath || pathname.startsWith(`${homePath}/`)
 }
