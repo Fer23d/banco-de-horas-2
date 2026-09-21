@@ -118,6 +118,20 @@ describe('DemoAreaPlaceholderPage', () => {
   })
 
   it.each([
+    '/administracao',
+    '/administracao/equipes',
+    '/avisos',
+    '/relatorios',
+  ] as const)('mantém o menu completo da Diretoria em %s', (path) => {
+    const markup = renderRoutes(path, 'DIRECTOR_ADMIN')
+
+    expect(markup).toContain('Painel Diretor')
+    expect(markup).toContain('Equipes')
+    expect(markup).toContain('Avisos')
+    expect(markup).toContain('Relatórios')
+  })
+
+  it.each([
     ['SUPERVISOR'],
     ['DIRECTOR_ADMIN'],
   ] as const)('mantém a Sidebar ao acessar Avisos como %s', (role) => {

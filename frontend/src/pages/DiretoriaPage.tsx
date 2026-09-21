@@ -10,6 +10,7 @@ import { getTimesheetCycle } from '../shared/utils/date'
 import { ManagerCalendar } from '../features/calendar/ManagerCalendar'
 import type { SupervisorPendingEntry } from '../features/supervisor/types'
 import { supervisorService } from '../services/supervisorService'
+import { directorNavigation } from '../mocks/navigation'
 
 type DiretoriaEntry = {
   id: string
@@ -113,18 +114,12 @@ function DiretoriaSidebar({ onSignOut }: { onSignOut: () => void }) {
         </div>
       </section>
       <nav className="flex-1 space-y-2 p-4" aria-label="Menu lateral da diretoria">
-        <NavLink to="/administracao" end className={linkClass}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-navigation-active-detail)] text-xs text-[var(--color-primary)]">DI</span>
-          <span className="flex-1">Painel Diretor</span>
-        </NavLink>
-        <NavLink to="/administracao/equipes" className={linkClass}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-sidebar-surface)] text-xs">EQ</span>
-          <span className="flex-1">Equipes</span>
-        </NavLink>
-        <NavLink to="/avisos" className={linkClass}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-sidebar-surface)] text-xs">AV</span>
-          <span className="flex-1">Avisos</span>
-        </NavLink>
+        {directorNavigation.map((item) => (
+          <NavLink key={item.path} to={item.path} end={item.path === '/administracao'} className={linkClass}>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-sidebar-surface)] text-xs">{item.shortLabel}</span>
+            <span className="flex-1">{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
       <div className="border-t border-[var(--color-sidebar-border)] p-4">
         <button type="button" onClick={onSignOut} className="w-full rounded-xl border border-[var(--color-sidebar-border)] px-4 py-3 text-left text-sm font-bold text-[var(--color-sidebar-text)] hover:bg-[var(--color-navigation-hover)]">
