@@ -117,6 +117,16 @@ describe('DemoAreaPlaceholderPage', () => {
   })
 
   it.each([
+    ['SUPERVISOR'],
+    ['DIRECTOR_ADMIN'],
+  ] as const)('mantém a Sidebar ao acessar Avisos como %s', (role) => {
+    const markup = renderRoutes('/avisos', role)
+
+    expect(markup).toContain('data-desktop-sidebar')
+    expect(markup).toContain('Quadro de Avisos')
+  })
+
+  it.each([
     ['/supervisor', 'COLLABORATOR'],
     ['/supervisor', 'DIRECTOR_ADMIN'],
     ['/administracao', 'COLLABORATOR'],
