@@ -9,7 +9,13 @@ type HeaderProps = {
 }
 
 export const Header = forwardRef<HTMLButtonElement, HeaderProps>(function Header({ isMenuOpen, onMenuToggle }, menuButtonRef) {
-  const { profile } = useSession()
+  const { profile, session } = useSession()
+  const headerTitle = session?.role === 'DIRECTOR_ADMIN'
+    ? 'ÁREA DA DIRETORIA'
+    : session?.role === 'SUPERVISOR'
+      ? 'ÁREA DA SUPERVISÃO'
+      : 'ÁREA DO COLABORADOR'
+
   return (
     <header data-layout-region="global-header" className="sticky top-0 z-40 flex h-20 w-full items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-header)] px-4 shadow-sm sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
@@ -26,7 +32,7 @@ export const Header = forwardRef<HTMLButtonElement, HeaderProps>(function Header
         </button>
         <BrandMark variant="compact" />
         <div className="hidden md:block">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">Área do colaborador</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">{headerTitle}</p>
           <p className="text-sm text-[var(--color-text-muted)]">Apontamento de horas por projeto</p>
         </div>
       </div>

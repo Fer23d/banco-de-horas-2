@@ -8,6 +8,7 @@ import { ProtectedRoute } from '../features/session/ProtectedRoute'
 import { PublicOnlyRoute } from '../features/session/PublicOnlyRoute'
 import type { DemoSession } from '../features/session/types'
 import { AppLayout } from './AppLayout'
+import { Header } from './Header'
 import { closeDrawerAfterNavigation, focusDrawerInitialElement, restoreDrawerTriggerFocus, scheduleDrawerTriggerFocus, shouldCloseDrawerForKey } from './drawer'
 import { PageContainer } from './PageContainer'
 
@@ -26,6 +27,13 @@ const supervisorSession: DemoSession = {
   id: 'demo-supervisor-001',
   name: 'Supervisor',
   role: 'SUPERVISOR',
+}
+
+const directorSession: DemoSession = {
+  ...collaboratorSession,
+  id: 'demo-director-001',
+  name: 'Diretoria',
+  role: 'DIRECTOR_ADMIN',
 }
 
 function renderLayout() {
@@ -59,6 +67,24 @@ function renderGuard(
 }
 
 describe('layout responsivo do colaborador', () => {
+  it.each([
+    ['COLLABORATOR', collaboratorSession, 'ÁREA DO COLABORADOR'],
+    ['SUPERVISOR', supervisorSession, 'ÁREA DA SUPERVISÃO'],
+    ['DIRECTOR_ADMIN', directorSession, 'ÁREA DA DIRETORIA'],
+  ] as const)('exibe o título do header conforme a role %s', (_role, session, expectedTitle) => {
+    const markup = renderToStaticMarkup(
+      <MemoryRouter>
+        <ThemeContext.Provider value={{ theme: 'light', toggleTheme: vi.fn() }}>
+          <SessionContext.Provider value={{ session, profile: null, isLoading: false, signIn: vi.fn(), signOut: vi.fn() }}>
+            <Header isMenuOpen={false} onMenuToggle={vi.fn()} />
+          </SessionContext.Provider>
+        </ThemeContext.Provider>
+      </MemoryRouter>,
+    )
+
+    expect(markup).toContain(expectedTitle)
+  })
+
   it('mantém sidebar desktop e drawer mobile como regiões independentes do shell', () => {
     const markup = renderLayout()
     const desktopStart = markup.indexOf('data-desktop-sidebar="true"')
