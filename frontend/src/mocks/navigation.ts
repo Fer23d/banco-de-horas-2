@@ -8,3 +8,9 @@ export const collaboratorNavigation: NavigationItem[] = [
   { label: 'Quadro de Avisos', shortLabel: 'QA', path: '/colaborador/avisos' },
   { label: 'Meu perfil', shortLabel: 'MP', path: '/colaborador/perfil' },
 ]
+
+export const directorNavigation: NavigationItem[] = [
+  { label: 'Painel Diretor', shortLabel: 'DI', path: '/administracao' },
+  { label: 'Equipes', shortLabel: 'EQ', path: '/administracao/equipes' },
+  { label: 'Avisos', shortLabel: 'AV', path: '/avisos' },
+]

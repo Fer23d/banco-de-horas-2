@@ -1,6 +1,6 @@
 import type { KeyboardEventHandler } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { collaboratorNavigation } from '../mocks/navigation'
+import { collaboratorNavigation, directorNavigation } from '../mocks/navigation'
 import { useSession } from '../features/session/useSession'
 import { profileService } from '../services/profileService'
 
@@ -20,9 +20,11 @@ function getInitials(name: string) {
 }
 
 function SidebarContent({ onNavigate }: SidebarContentProps) {
-  const { profile, signOut } = useSession()
+  const { profile, session, signOut } = useSession()
   const navigate = useNavigate()
   const assignment = profile ? profileService.resolveAssignment(profile.id) : null
+  const navigation = session?.role === 'DIRECTOR_ADMIN' ? directorNavigation : collaboratorNavigation
+  const navigationLabel = session?.role === 'DIRECTOR_ADMIN' ? 'Navegação da diretoria' : 'Navegação do colaborador'
 
   const handleSignOut = () => {
     signOut()
@@ -50,15 +52,15 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         </section>
       )}
 
-      <nav className="tour-menu flex-1 space-y-2 p-4" aria-label="Navegação do colaborador">
-        {collaboratorNavigation.map((item) => (
+      <nav className="tour-menu flex-1 space-y-2 p-4" aria-label={navigationLabel}>
+        {navigation.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             end={item.path === '/colaborador'}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl border-l-4 px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-text)] ${item.path === '/colaborador/apontamentos/novo' ? 'tour-btn-apontar' : ''} ${
+                `flex items-center gap-3 rounded-xl border-l-4 px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-text)] ${item.path === '/colaborador/apontamentos/novo' ? 'tour-btn-apontar' : ''} ${
                 isActive ? 'border-[var(--color-primary)] bg-[var(--color-navigation-active)] text-[var(--color-navigation-active-text)]' : 'border-transparent text-[var(--color-sidebar-text-muted)] hover:bg-[var(--color-navigation-hover)] hover:text-[var(--color-sidebar-text)]'
               }`
             }
@@ -66,7 +68,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             {({ isActive }) => (
               <>
                 <span className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs ${isActive ? 'bg-[var(--color-navigation-active-detail)] text-[var(--color-primary)]' : 'bg-[var(--color-sidebar-surface)]'}`}>{item.shortLabel}</span>
-                <span className={`flex-1 ${item.path === '/colaborador/avisos' ? 'tour-avisos' : ''}`}>{item.label}</span>
+                <span className={`flex-1 ${item.path === '/colaborador/avisos' || item.path === '/avisos' ? 'tour-avisos' : ''}`}>{item.label}</span>
                 {isActive && <span className="text-[10px] font-extrabold uppercase" aria-label="Página atual">Atual</span>}
               </>
             )}
@@ -88,7 +90,7 @@ export function DesktopSidebar() {
   return (
     <aside
       data-desktop-sidebar
-      aria-label="Menu lateral do colaborador"
+      aria-label="Menu lateral"
       className="hidden h-[calc(100vh-5rem)] w-64 min-w-0 flex-col overflow-y-auto bg-[var(--color-sidebar)] text-[var(--color-sidebar-text)] lg:sticky lg:top-20 lg:flex lg:self-start"
     >
       <SidebarContent onNavigate={() => undefined} />

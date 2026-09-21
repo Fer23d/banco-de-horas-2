@@ -48,6 +48,18 @@ function renderLayout() {
   )
 }
 
+function renderLayoutForSession(session: DemoSession) {
+  return renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/avisos']}>
+      <ThemeContext.Provider value={{ theme: 'light', toggleTheme: vi.fn() }}>
+        <SessionContext.Provider value={{ session, profile: null, isLoading: false, signIn: vi.fn(), signOut: vi.fn() }}>
+          <AppLayout />
+        </SessionContext.Provider>
+      </ThemeContext.Provider>
+    </MemoryRouter>,
+  )
+}
+
 function renderGuard(
   route: React.ReactNode,
   { session, profile = null }: { session: DemoSession | null; profile?: typeof demoCollaborator | null },
@@ -67,6 +79,19 @@ function renderGuard(
 }
 
 describe('layout responsivo do colaborador', () => {
+  it('renderiza apenas o menu da diretoria para o Diretor', () => {
+    const markup = renderLayoutForSession(directorSession)
+    const sidebarStart = markup.indexOf('data-desktop-sidebar="true"')
+    const sidebarMarkup = markup.slice(sidebarStart, markup.indexOf('</aside>', sidebarStart))
+
+    expect(sidebarMarkup).toContain('Painel Diretor')
+    expect(sidebarMarkup).toContain('Equipes')
+    expect(sidebarMarkup).toContain('Avisos')
+    expect(sidebarMarkup).not.toContain('Visão geral')
+    expect(sidebarMarkup).not.toContain('Novo apontamento')
+    expect(sidebarMarkup).not.toContain('Ausências')
+  })
+
   it.each([
     ['COLLABORATOR', collaboratorSession, 'ÁREA DO COLABORADOR'],
     ['SUPERVISOR', supervisorSession, 'ÁREA DA SUPERVISÃO'],
