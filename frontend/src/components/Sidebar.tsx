@@ -23,6 +23,17 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
   const { profile, session, signOut } = useSession()
   const navigate = useNavigate()
   const assignment = profile ? profileService.resolveAssignment(profile.id) : null
+  const isDirector = session?.role === 'DIRECTOR_ADMIN'
+  const sidebarProfile = isDirector
+    ? { name: 'Diretoria SM&A', jobTitle: 'Visão macro' }
+    : profile
+      ? { name: profile.name, jobTitle: profile.jobTitle }
+      : session
+        ? { name: session.name, jobTitle: session.role === 'SUPERVISOR' ? 'Supervisão' : 'Colaborador' }
+        : null
+  const sidebarProfileLabel = isDirector ? 'Perfil atual da diretoria' : 'Perfil atual do usuário'
+  const sidebarInitials = isDirector ? 'DI' : sidebarProfile ? getInitials(sidebarProfile.name) : ''
+  const sidebarSquad = assignment?.squadName ?? (isDirector ? 'Visão macro' : 'Não definida')
   const navigation = session?.role === 'DIRECTOR_ADMIN' ? directorNavigation : collaboratorNavigation
   const navigationLabel = session?.role === 'DIRECTOR_ADMIN' ? 'Navegação da diretoria' : 'Navegação do colaborador'
 
@@ -34,19 +45,19 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
 
   return (
     <>
-      {profile && (
-        <section className="border-b border-[var(--color-sidebar-border)] p-4" aria-label="Perfil atual do colaborador">
+      {sidebarProfile && (
+        <section className="border-b border-[var(--color-sidebar-border)] p-4" aria-label={sidebarProfileLabel}>
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-surface)] text-sm font-extrabold" aria-label={`Iniciais de ${profile.name}`}>{getInitials(profile.name)}</span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-sidebar-border)] bg-[var(--color-sidebar-surface)] text-sm font-extrabold" aria-label={`Iniciais de ${sidebarProfile.name}`}>{sidebarInitials}</span>
             <div className="min-w-0">
-              <p className="text-sm font-extrabold leading-tight">{profile.name}</p>
-              <p className="mt-0.5 text-xs leading-tight text-[var(--color-sidebar-text-muted)]">{profile.jobTitle}</p>
+              <p className="text-sm font-extrabold leading-tight">{sidebarProfile.name}</p>
+              <p className="mt-0.5 text-xs leading-tight text-[var(--color-sidebar-text-muted)]">{sidebarProfile.jobTitle}</p>
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-[var(--color-sidebar-surface)] p-3">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-sidebar-text-muted)]">Squad ativa</p>
-              <p className="text-xs font-bold leading-tight">{assignment?.squadName ?? 'Não definida'}</p>
+              <p className="text-xs font-bold leading-tight">{sidebarSquad}</p>
             </div>
           </div>
         </section>

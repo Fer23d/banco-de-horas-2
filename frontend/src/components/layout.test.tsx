@@ -93,6 +93,15 @@ describe('layout responsivo do colaborador', () => {
     expect(sidebarMarkup).not.toContain('Ausências')
   })
 
+  it('mantém o cabeçalho de perfil da Diretoria mesmo sem perfil de colaborador', () => {
+    const markup = renderLayoutForSession(directorSession)
+
+    expect(markup).toContain('Perfil atual da diretoria')
+    expect(markup).toContain('Iniciais de Diretoria SM&amp;A')
+    expect(markup).toContain('Diretoria SM&amp;A')
+    expect(markup).toContain('Visão macro')
+  })
+
   it.each([
     ['COLLABORATOR', collaboratorSession, 'ÁREA DO COLABORADOR'],
     ['SUPERVISOR', supervisorSession, 'ÁREA DA SUPERVISÃO'],
