@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PageContainer } from '../components/PageContainer'
 import { buildReportRows, toReportCsv, type ReportRow } from '../services/reportService'
+import { buildPowerBiFeedUrl, toPowerBiDatasetCsv } from '../services/powerBiExportService'
 import { supervisorService } from '../services/supervisorService'
 import { getCorporateToday, getTimesheetCycle } from '../shared/utils/date'
 
@@ -31,6 +32,25 @@ function downloadCsv(rows: ReportRow[]) {
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = `relatorio_horas_${getCorporateToday()}.csv`
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+function downloadPowerBiDataset(rows: ReportRow[]) {
+  const dataset = rows.map((row) => ({
+    collaborator: row.collaborator,
+    supervisor: row.supervisor,
+    date: row.date,
+    activity: row.activity,
+    project: row.project,
+    hours: row.hours,
+    status: statusLabel[row.status],
+  }))
+  const blob = new Blob([`\uFEFF${toPowerBiDatasetCsv(dataset)}`], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `dataset_powerbi_${getCorporateToday()}.csv`
   anchor.click()
   URL.revokeObjectURL(url)
 }
@@ -78,6 +98,24 @@ export function RelatoriosPage() {
   }, [rows])
   const pendingCount = rows.filter((row) => row.status === 'PENDING').length
   const overtimeHours = rows.reduce((total, row) => total + Math.max(0, row.durationMinutes - 480), 0)
+  const powerBiFeedUrl = useMemo(() => buildPowerBiFeedUrl({
+    companyId: 'sma',
+    directorId: 'diretoria',
+    cycleStart: cycle.startDate,
+    cycleEnd: cycle.endDate,
+  }), [cycle.endDate, cycle.startDate])
+  const [isFeedCopied, setIsFeedCopied] = useState(false)
+
+  async function handleCopyPowerBiFeed() {
+    try {
+      await navigator.clipboard.writeText(powerBiFeedUrl)
+      setIsFeedCopied(true)
+      window.setTimeout(() => setIsFeedCopied(false), 2200)
+    } catch (error) {
+      console.error('Não foi possível copiar o link do Power BI.', error)
+      setIsFeedCopied(false)
+    }
+  }
 
   return (
     <PageContainer title="Relatórios" description="Indicadores consolidados de horas, operação e aprovações da Diretoria." contained={false}>
@@ -90,6 +128,34 @@ export function RelatoriosPage() {
           </div>
           <button type="button" onClick={() => downloadCsv(rows)} disabled={isLoading || rows.length === 0} className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60">Exportar Relatório (CSV)</button>
         </div>
+
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-500/30 dark:bg-amber-500/10" aria-labelledby="power-bi-title">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F2C811] text-sm font-black text-[#5A4A00]" aria-hidden="true">BI</span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8A6D00]">Integração analítica</p>
+                  <h2 id="power-bi-title" className="mt-1 text-xl font-extrabold ui-text">Conectar ao Power BI</h2>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-6 ui-text-muted">Use o feed do ciclo atual para conectar os indicadores da Diretoria ao Power BI. Este endereço representa o endpoint de integração do ambiente.</p>
+            </div>
+            <button type="button" onClick={() => downloadPowerBiDataset(rows)} disabled={isLoading || rows.length === 0} className="shrink-0 rounded-xl border border-amber-500/50 bg-white px-4 py-2.5 text-sm font-extrabold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-500/10">Descarregar Dataset (Modelo Estrela)</button>
+          </div>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <input aria-label="Link do feed do Power BI" readOnly value={powerBiFeedUrl} className="min-w-0 flex-1 rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-sm ui-text outline-none dark:border-amber-500/40 dark:bg-[var(--color-surface)]" />
+            <button type="button" onClick={() => void handleCopyPowerBiFeed()} className="rounded-xl bg-[#F2C811] px-4 py-2.5 text-sm font-extrabold text-[#5A4A00] transition hover:bg-[#DDB600]">{isFeedCopied ? 'Link copiado com sucesso!' : 'Copiar Link'}</button>
+          </div>
+          <details className="mt-4 rounded-xl border border-amber-300/60 bg-white/60 p-4 text-sm ui-text-muted dark:border-amber-500/30 dark:bg-[var(--color-surface)]">
+            <summary className="cursor-pointer font-bold ui-text">Como conectar no Power BI</summary>
+            <ol className="mt-3 list-inside list-decimal space-y-1.5">
+              <li>Abra o Power BI Desktop.</li>
+              <li>Clique em <strong>Obter Dados</strong> &gt; <strong>Web</strong>.</li>
+              <li>Cole o link acima e clique em <strong>OK</strong>.</li>
+            </ol>
+          </details>
+        </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores do relatório">
           <article className="rounded-2xl border ui-border ui-surface p-5"><p className="text-xs font-bold uppercase tracking-wider ui-text-subtle">Horas da operação</p><p className="mt-3 text-3xl font-extrabold ui-heading">{formatHours(totalHours)}</p></article>
